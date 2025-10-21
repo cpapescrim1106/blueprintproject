@@ -1,0 +1,23 @@
+{
+  "name": "blueprintproject",
+  "version": "1.0.0",
+  "description": "This folder archives the mitmproxy capture we just performed against the Blueprint OMS desktop client (v4.8.1) while requesting two sample reports. It also contains the decoded queue payloads and the S3 artefacts returned by the reporting service so we can build a fully automated exporter.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "convex:push": "npx convex dev --once",
+    "convex:ingest": "node scripts/ingest_report.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "convex": "^1.28.0",
+    "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.3",
+    "minimist": "^1.2.8"
+  },
+  "devDependencies": {
+    "create-convex": "^0.0.41"
+  }
+}

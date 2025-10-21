@@ -1,0 +1,27 @@
+# Node and Python artefacts
+node_modules/
+convex-dashboard/node_modules/
+*.pyc
+__pycache__/
+
+# Env and credentials
+.env
+.env.local
+convex-dashboard/.env
+convex-dashboard/.env.local
+aws_credentials.txt
+
+# Build outputs
+exports/**/*.csv
+exports/**/*.gz
+exports/**/*.jrprint
+captures/**
+
+# IDE/editor
+.vscode/
+.DS_Store
+
+# Local JDK archive
+jdk8u462-b08/
+temurin8.tar.gz
+OMSClient.log

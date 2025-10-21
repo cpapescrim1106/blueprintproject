@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleExecutable</key>
+	<string>Blueprint OMS v4.8.1</string>
+	<key>CFBundleGetInfoString</key>
+	<string>Blueprint OMS Client Application</string>
+	<key>CFBundleIconFile</key>
+	<string>515bb857-580daf92.icns</string>
+	<key>CFBundleIdentifier</key>
+	<string>com.oracle.jnlp--884628830</string>
+	<key>CFBundleName</key>
+	<string>Blueprint OMS v4.8.1</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>LSUIElement</key>
+	<string>1</string>
+	<key>NSPrincipalClass</key>
+	<string>NSApplication</string>
+	<key>WebStartArgs</key>
+	<array>
+		<string>-localfile</string>
+		<string>-online</string>
+		<string>-J-Djnlp.application.href=http://ws1.bp-solutions.net/US/FL/acc071817/omsclient/launch.jnlp </string>
+		<string>/Users/chris/Library/Application Support/Oracle/Java/Deployment/cache/6.0/57/1bc2af9-7749498f</string>
+	</array>
+</dict>
+</plist>

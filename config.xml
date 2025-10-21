@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Application context for the remote OMSService client -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+       xmlns:amq="http://activemq.apache.org/schema/core"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+ 
+    <!-- System properties for Windows native installer -->
+    <!-- These were previously in omsclient.php for JavaWS deployment -->
+    <bean id="systemProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="properties">
+            <props>
+                <!-- prop key="jnlp.CLINIC_PREFERRED_LANGUAGE">en_US</prop -->
+                <prop key="jnlp.INACTIVITY_TIMEOUT_PROPERTY">21600000</prop>
+                <!-- prop key="jnlp.APPOINTMENT_SEARCH_INTERVAL_PROPERTY">365</prop -->
+                <!-- prop key="jnlp.EVENT_DEFAULT_STATUS_PROPERTY">0</prop -->
+                <!-- prop key="jnlp.TIMEZONE_OVERRIDE_PROPERTY">US/Central</prop -->
+                <!-- prop key="sun.java2d.dpiaware">false</prop -->
+                <!-- prop key="jnlp.MAX_HEAP_SIZE">768M</prop -->
+            </props>
+        </property>
+    </bean>
+	
+</beans>	

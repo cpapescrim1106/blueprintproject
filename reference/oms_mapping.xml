@@ -1,0 +1,421 @@
+<!DOCTYPE databases PUBLIC "-//EXOLAB/Castor Mapping DTD Version 1.0//EN" "http://castor.exolab.org/mapping.dtd">
+
+<mapping>
+  <description>simba OMS object to XML mappings</description>
+  
+  <class name="com.blueprint.oms.common.client.ClientInformationSet" auto-complete="true">    
+    <field name="data" collection="collection" type="com.blueprint.oms.common.client.ClientInformation"/>        
+  </class>
+  
+  <class name="com.blueprint.oms.common.client.TargetedClientInformationSet" auto-complete="true">    
+    <field name="data" collection="collection" type="com.blueprint.oms.common.client.TargetedClientInformation"/>        
+  </class>
+  
+  <class name="com.blueprint.oms.common.GenericListItemSet" auto-complete="true">    
+    <field name="data" collection="collection" type="com.blueprint.common.GenericListItem"/>        
+  </class>
+  
+  <class name="com.blueprint.oms.common.user.LoggedOnUsersSet" auto-complete="true">    
+    <field name="data" collection="collection" type="java.lang.Long"/>        
+  </class>
+  
+  <class name="com.blueprint.oms.common.exception.persistence.DuplicateClientException" auto-complete="false">
+    <field name="newClient" type="com.blueprint.oms.common.client.Client"/>
+    <field name="potentialDuplicates" collection="set" type="com.blueprint.oms.common.client.Client"/>        
+  </class>
+  
+  <class name="com.blueprint.oms.common.client.ClientJournalEntrySet" auto-complete="true">    
+    <field name="data" collection="collection" type="com.blueprint.oms.common.client.ClientJournalEntry"/>        
+  </class>
+  
+  <class name="com.blueprint.oms.common.client.ClientAidSet" auto-complete="true">    
+    <field name="data" collection="collection" type="com.blueprint.oms.common.client.ClientAid"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.client.ClientAid" auto-complete="true">
+    <field name="options" collection="collection" type="com.blueprint.oms.common.product.HearingAidModelOption"/>        
+    <field name="aidHistory" collection="collection" type="com.blueprint.oms.common.client.ClientAidStateChange"/>
+    <field name="warrantyExpiryDate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="warrantyExpiryDate"/>
+    </field>
+    <field name="purchaseDate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="purchaseDate"/>
+    </field>
+    <field name="lossAndDamageWarranty" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="lossAndDamageWarranty"/>
+    </field>
+    <field name="servicePlanExpiryDate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="servicePlanExpiryDate"/>
+    </field>      
+  </class>
+  
+  <class name="com.blueprint.oms.common.client.ClientJournalEntry" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.client.ClientJournalEntryID" auto-complete="true"/>   
+  
+  <class name="com.blueprint.oms.common.product.HearingAidID" auto-complete="true"/>
+
+  <class name="com.blueprint.oms.common.order.AidOrderInformationSet" auto-complete="true">    
+    <field name="data" collection="collection" type="com.blueprint.oms.common.order.AidOrderInformation"/>        
+  </class>
+  
+  <class name="com.blueprint.oms.common.order.DeliveredOrderSet" auto-complete="true">    
+    <field name="data" collection="collection" type="com.blueprint.oms.common.order.ClientOrder"/>        
+  </class>
+  
+  <class name="com.blueprint.oms.common.order.AidOrderInformation" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.order.AidStateTransition" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.GlobalSettings" auto-complete="true">
+    <field name="branchUsers" collection="set" type="com.blueprint.oms.common.user.User"/>
+    <field name="publicInsurers" collection="map" type="com.blueprint.oms.common.insurer.Insurer"/>
+    <field name="privateInsurers" collection="map" type="com.blueprint.oms.common.insurer.Insurer"/>
+    <field name="manufacturers" collection="set" type="com.blueprint.oms.common.manufacturer.Manufacturer"/>
+    <field name="hearingAidModels" collection="set" type="com.blueprint.oms.common.product.HearingAidModel"/>
+    <field name="repairs" collection="arraylist" type="com.blueprint.oms.common.product.Repair"/>
+    <field name="hearingAidOptions" collection="set" type="com.blueprint.oms.common.product.HearingAidModelOption"/>
+    <field name="hearingAidTechnologies" collection="set" type="com.blueprint.oms.common.product.HearingAidTechnology"/>
+    <field name="hearingAidStyles" collection="set" type="com.blueprint.oms.common.product.HearingAidStyle"/>
+    <field name="accessories" collection="set" type="com.blueprint.oms.common.product.Accessory"/>
+    <field name="batteries" collection="set" type="com.blueprint.oms.common.product.BatteryPack"/>
+    <field name="batterySizes" collection="set" type="com.blueprint.oms.common.product.BatterySize"/>
+    <field name="services" collection="set" type="com.blueprint.oms.common.product.Service"/>
+    <field name="taxCodes" collection="set" type="com.blueprint.oms.common.accounting.TaxCode"/>
+    <field name="taxes" collection="set" type="com.blueprint.oms.common.accounting.Tax"/>
+    <field name="accountingItems" collection="set" type="com.blueprint.oms.common.accounting.AccountingItem"/>
+    <field name="hearingAidTechnologyReturnCharges" collection="set" type="com.blueprint.oms.common.product.HearingAidTechnologyReturnCharge"/>
+    <field name="referrerTypes" collection="arraylist" type="com.blueprint.oms.common.marketing.ReferrerType"/>
+    <field name="incomeAccounts" collection="arraylist" type="com.blueprint.oms.common.accounting.Account"/>
+    <field name="expenseAccounts" collection="arraylist" type="com.blueprint.oms.common.accounting.Account"/>
+    <field name="clientGroups" collection="set" type="com.blueprint.oms.common.marketing.ClientGroup"/>
+    <field name="marketingCampaigns" collection="arraylist" type="com.blueprint.oms.common.marketing.MarketingCampaignDto"/>
+    <field name="physicians" collection="arraylist" type="com.blueprint.oms.common.client.Physician"/>
+    <field name="branches" collection="arraylist" type="com.blueprint.oms.common.client.Branch"/>
+    <field name="returnReasons" collection="arraylist" type="com.blueprint.oms.common.returns.ReturnReason"/>
+    <field name="discountReasons" collection="arraylist" type="com.blueprint.oms.common.order.DiscountReason"/> 
+    <field name="inputFields" collection="set" type="com.blueprint.oms.common.InputField"/>
+    <field name="countries" collection="set" type="com.blueprint.oms.common.address.Country"/>
+    <field name="trips" collection="set" type="com.blueprint.oms.common.address.Trip"/>
+    <field name="accountingTemplates" collection="set" type="com.blueprint.oms.common.accounting.AccountingTemplate"/>
+    <field name="clientJournalEntryTypes" collection="set" type="com.blueprint.oms.common.client.ClientJournalEntryType"/>
+    <field name="schedulingLocations" collection="set" type="com.blueprint.scheduling.common.SchedulingLocation"/>
+    <field name="schedulingEventTypes" collection="set" type="com.blueprint.scheduling.common.SchedulingEventType"/>
+    <field name="correspondenceTemplates" collection="set" type="com.blueprint.oms.common.clientreporting.correspondence.CorrespondenceTemplate"/>
+    <field name="correspondenceBodies" collection="set" type="com.blueprint.oms.common.clientreporting.correspondence.CorrespondenceBody"/>       
+    <field name="paymentMethods" collection="arraylist" type="com.blueprint.oms.common.accounting.PaymentMethod"/>
+</class>
+  
+  <class name="com.blueprint.oms.common.marketing.ReferralSource" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.marketing.ReferrerType" auto-complete="true">
+    <field name="referralSources" collection="arraylist" type="com.blueprint.oms.common.marketing.ReferralSource"/>
+  </class>
+  
+  <class name="com.blueprint.common.GenericListItem" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.insurer.InsurerID" extends="com.blueprint.common.GenericListItem" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.insurer.Insurer" extends="com.blueprint.oms.common.insurer.InsurerID" auto-complete="true"/>
+
+  <class name="com.blueprint.oms.common.us.insurer.Insurer_US" extends="com.blueprint.oms.common.insurer.Insurer" auto-complete="true"/>
+    
+  <class name="com.blueprint.oms.common.marketing.ClientGroup" extends="com.blueprint.common.GenericListItem" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.client.Physician" extends="com.blueprint.common.GenericListItem" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.client.Branch" extends="com.blueprint.common.GenericListItem" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.InputField" extends="com.blueprint.common.GenericListItem" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.address.Country" auto-complete="true">    
+    <field name="provinces" collection="set" type="com.blueprint.oms.common.address.Province"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.address.Trip" extends="com.blueprint.oms.common.client.Branch" auto-complete="true"/>
+
+  <class name="com.blueprint.oms.common.marketing.MarketingCampaign" extends="com.blueprint.oms.common.marketing.MarketingCampaignDto" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.marketing.MarketingCampaignDto" extends="com.blueprint.common.GenericListItem" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.marketing.AttributeOrParameterTemplate" auto-complete="true"/>    
+  
+  <class name="com.blueprint.oms.common.marketing.AttributeOrParameter" auto-complete="false">    
+    <map-to xml="AttributeOrParameter"/>
+    <field name="template" >
+        <bind-xml name="template" node="element"/>        
+    </field>
+    <field name="value">
+        <bind-xml name="value" node="element"/>        
+    </field>
+    <field name="selectedOperatorId">
+        <bind-xml name="selectedOperatorId" node="attribute"/>        
+    </field>    
+    <field name="collectionValue" type="com.blueprint.common.GenericListItem" collection="arraylist">
+        <bind-xml name="collectionValue" node="element"/>        
+    </field>
+  </class>
+  
+  <class name="com.blueprint.oms.common.marketing.QueryAttribute" extends="com.blueprint.oms.common.marketing.AttributeOrParameter" auto-complete="false">  
+    <map-to xml="QueryAttribute"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.marketing.QueryParameter" extends="com.blueprint.oms.common.marketing.AttributeOrParameter" auto-complete="false">
+    <map-to xml="QueryParameter"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.marketing.Query" auto-complete="true">
+    <field name="queryParameters" collection="arraylist" type="com.blueprint.oms.common.marketing.QueryParameter"/>
+  </class>    
+  
+  <class name="com.blueprint.oms.common.marketing.CompositeQuery" auto-complete="false">
+    <field name="primaryQuery" type="com.blueprint.oms.common.marketing.Query"/>
+    <field name="attributes" collection="arraylist" type="com.blueprint.oms.common.marketing.AttributeOrParameter"/>
+    <field name="subQueries" collection="arraylist" type="com.blueprint.oms.common.marketing.Query"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.accounting.AccountingItem" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.manufacturer.ManufacturerID" auto-complete="true"/>  
+  
+  <class name="com.blueprint.oms.common.manufacturer.Manufacturer" auto-complete="true">
+    <!-- field name="hearingAidModels" collection="set" type="com.blueprint.oms.common.product.HearingAidModel"/ -->
+  </class>
+  
+  <class name="com.blueprint.oms.common.product.Saleable" auto-complete="true">        
+    <field name="insurerCoverage" collection="set" type="com.blueprint.oms.common.insurer.InsurerSaleableCoverage"/>            
+  </class> 
+  
+  <class name="com.blueprint.oms.common.product.HearingAidModelID" auto-complete="true"/> 
+  
+  <class name="com.blueprint.oms.common.product.HearingAidModel" auto-complete="true">   
+    <field name="options" collection="set" type="com.blueprint.oms.common.product.HearingAidModelOption"/>
+    <field name="insurerCoverage" collection="set" type="com.blueprint.oms.common.insurer.InsurerHearingAidModelCoverage"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.product.Repair" auto-complete="true">   
+    <field name="insurerCoverage" collection="set" type="com.blueprint.oms.common.insurer.InsurerHearingAidModelCoverage"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.product.HearingAidModelOption" auto-complete="true">
+    <field name="insurerCoverage" collection="set" type="com.blueprint.oms.common.insurer.InsurerHearingAidOptionCoverage"/>    
+  </class> 
+  
+  <class name="com.blueprint.oms.common.product.HearingAidTechnology" auto-complete="true">    
+  </class>  
+  
+  <class name="com.blueprint.oms.common.product.HearingAidStyle" auto-complete="true">    
+  </class>
+  
+  <class name="com.blueprint.oms.common.product.Service" auto-complete="true">
+    <field name="insurerCoverage" collection="set" type="com.blueprint.oms.common.insurer.InsurerServiceCoverage"/>
+    <field name="manufacturerPricing" collection="set" type="com.blueprint.oms.common.manufacturer.ManufacturerServicePricing"/>    
+  </class>
+  
+  <class name="com.blueprint.oms.common.product.HearingAidTechnologyReturnCharge" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.product.Accessory" auto-complete="true">
+    <field name="insurerCoverage" collection="set" type="com.blueprint.oms.common.insurer.InsurerAccessoryCoverage"/>    
+  </class>
+  
+  <class name="com.blueprint.oms.common.product.BatteryPack" auto-complete="true">    
+    <field name="insurerCoverage" collection="set" type="com.blueprint.oms.common.insurer.InsurerBatteryPackCoverage"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.product.BatterySize" auto-complete="true"/>    
+  
+  <class name="com.blueprint.oms.common.insurer.InsurerHearingAidModelCoverage" auto-complete="true"/>    
+  
+  <class name="com.blueprint.oms.common.insurer.InsurerHearingAidOptionCoverage" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.insurer.InsurerProductCoverage" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.insurer.InsurerAccessoryCoverage" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.insurer.InsurerServiceCoverage" auto-complete="true"/>
+
+  <class name="com.blueprint.oms.common.insurer.InsurerBatteryPackCoverage" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.marketing.ClientGroupingClient" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.client.ClientTypeGroupingClient" auto-complete="true"/>
+
+  <class name="com.blueprint.oms.common.user.User" auto-complete="true">
+    <field name="privileges" collection="set" type="com.blueprint.oms.common.user.Privilege"/>
+    <field name="monitoredSchedulingLocationIds" collection="set" type="java.lang.Integer"/>
+  </class>  
+  
+  <class name="com.blueprint.oms.common.user.Role" auto-complete="true">    
+    <field name="privileges" collection="collection" type="com.blueprint.oms.common.user.Privilege"/>        
+  </class>
+
+  <class name="com.blueprint.oms.common.client.ClientID" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.client.ClientInformation" auto-complete="true">
+    <map-to xml="ClientInformation"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.client.TargetedClientInformation" auto-complete="true">
+    <map-to xml="TargetedClientInformation"/>
+    <field name="lastEval" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="lastEval"/>
+    </field>                      
+    <field name="birthdate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="birthdate"/>
+    </field>
+  </class>
+  
+  <class name="com.blueprint.oms.common.client.Client" auto-complete="true">
+    <field name="insurancePolicies" collection="collection" type="com.blueprint.oms.common.client.InsurancePolicy"/>            
+    <field name="clientGroupingClients" collection="set" type="com.blueprint.oms.common.marketing.ClientGroupingClient"/> 
+    <field name="clientTypeGroups" collection="set" type="com.blueprint.oms.common.client.ClientTypeGroupingClient"/>
+    <field name="birthdate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="birthdate"/>
+    </field>         
+    <field name="audiologyHistory" collection="collection" type="com.blueprint.oms.common.client.ClientAudiologyStatus"/> 
+  </class>
+
+  <class name="com.blueprint.oms.common.us.client.Client_US" auto-complete="true"> 
+    <field name="birthdate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="birthdate"/>
+    </field>
+  </class>
+
+  <class name="com.blueprint.oms.common.it.client.Client_IT" extends="com.blueprint.oms.common.client.Client" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.us.client.ClientInsuranceInformation" auto-complete="true">
+    <field name="insuredDOB" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="insuredDOB"/>
+    </field>
+  </class>
+  
+  <class name="com.blueprint.oms.common.client.ClientAudiologyStatus" auto-complete="true">
+    <field name="entryDate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="entryDate"/>
+    </field>
+  </class>
+
+  <class name="com.blueprint.oms.common.client.AlternateContact" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.es.client.AlternateContact_ES" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.client.InsurancePolicy" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.insurer.InsurerOrderCoverage" auto-complete="true"/>  
+  
+  <class name="com.blueprint.oms.common.insurer.InsurerCreditAllocation" auto-complete="true"/>  
+  
+  <class name="com.blueprint.oms.common.order.ClientOrder" auto-complete="true">    
+    <field name="aidOrders" collection="collection" type="com.blueprint.oms.common.order.AidOrder"/>
+    <field name="otherProductsServices" collection="set" type="com.blueprint.oms.common.order.SaleableSale"/>            
+    <field name="insurerCoverage" collection="set" type="com.blueprint.oms.common.insurer.InsurerOrderCoverage"/>
+    <field name="clientPayments" collection="arraylist" type="com.blueprint.oms.common.accounting.ClientPayment"/>
+    <field name="servicePlanExpiryDate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="servicePlanExpiryDate"/>
+    </field>
+    
+    <!-- Don't marshal/unmarshal these fields which do not exist! Castor thinks they exist because of methods like isNewAidOrder() -->
+    <field name="newAidOrder" transient="true"/>
+    <field name="repairOrder" transient="true"/>
+    <field name="valid" transient="true"/>
+  </class>
+
+  <class name="com.blueprint.oms.common.us.order.ClientOrder_US" extends="com.blueprint.oms.common.order.ClientOrder" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.it.order.ClientOrder_IT" extends="com.blueprint.oms.common.order.ClientOrder" auto-complete="true">
+    <field name="clientOrderPaymentTerms" collection="arraylist" type="com.blueprint.oms.common.it.accounting.ClientOrderPaymentTerm"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.il.order.ClientOrder_IL" extends="com.blueprint.oms.common.order.ClientOrder" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.it.accounting.ClientOrderPaymentTerm" auto-complete="true">
+    <field name="installmentDate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="installmentDate"/>
+    </field>
+  </class>
+  
+  <class name="com.blueprint.oms.common.us.order.SaleableSale_US" extends="com.blueprint.oms.common.order.SaleableSale" auto-complete="true">
+      <field name="pqrsMeasures" collection="arraylist" type="com.blueprint.oms.common.us.order.PQRSMeasure"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.us.order.PQRSMeasure" auto-complete="true"/>
+
+  <class name="com.blueprint.oms.common.order.ClientOrderID" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.returns.ReturnOrder" auto-complete="true">    
+    <field name="returnedAids" collection="collection" type="com.blueprint.oms.common.returns.NewAidReturn"/>
+    <field name="otherReturnedItems" collection="collection" type="com.blueprint.oms.common.order.SaleableSale"/>
+    <field name="insurerCreditAllocation" collection="set" type="com.blueprint.oms.common.insurer.InsurerCreditAllocation"/>            
+  </class>
+
+  <class name="com.blueprint.oms.common.us.returns.ReturnOrder_US" extends="com.blueprint.oms.common.returns.ReturnOrder" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.returns.NewAidReturn" auto-complete="true">
+    <field name="options" collection="set" type="com.blueprint.oms.common.order.NewAidOrderOption"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.returns.ReturnOrderID" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.order.SaleableSale" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.returns.SaleableReturn" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.returns.NewAidReturnCharge" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.order.AidOrder" auto-complete="true"/>   
+  
+  <class name="com.blueprint.oms.common.order.RepairOrder" auto-complete="true"/>        
+  
+  <class name="com.blueprint.oms.common.order.NewAidOrder" auto-complete="true">        
+    <field name="options" collection="set" type="com.blueprint.oms.common.order.NewAidOrderOption"/>
+    <field name="clientAidWarrantyExpiryDate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="clientAidWarrantyExpiryDate"/>
+    </field>
+    <field name="clientAidLossAndDamageDate" type="java.lang.String" handler="com.blueprint.oms.common.castor.fieldhandler.DateTimeFieldHandler">
+        <bind-xml name="clientAidLossAndDamageDate"/>
+    </field>
+  </class>
+  
+  <class name="com.blueprint.oms.common.order.NewAidOrderOption" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.accounting.TaxCode" auto-complete="true">
+    <field name="taxes" collection="set" type="com.blueprint.oms.common.accounting.Tax"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.accounting.Account" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.accounting.Tax" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.accounting.TaxCodeTax" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.GenericAddressable" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.accounting.AccountingTemplate" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.returns.ReturnReason" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.client.ClientJournalEntryType" auto-complete="true"/>
+  
+  <class name="com.blueprint.scheduling.common.SchedulingEventType" auto-complete="true"/>
+  
+  <class name="com.blueprint.scheduling.common.SchedulingCalendar" auto-complete="true"/>
+  
+  <class name="com.blueprint.scheduling.common.SchedulingLocation" auto-complete="true">
+      <field name="calendars" collection="set" type="com.blueprint.scheduling.common.SchedulingCalendar"/>
+      <field name="resourceCalendars" collection="set" type="com.blueprint.scheduling.common.SchedulingCalendar"/>
+  </class>
+  
+  <class name="com.blueprint.oms.common.clientreporting.correspondence.CorrespondenceTemplate" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.clientreporting.correspondence.CorrespondenceBody" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.order.DiscountReason" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.accounting.PaymentMethod" auto-complete="true"/>
+  
+  <class name="com.blueprint.oms.common.client.RecallType" auto-complete="true"/>
+  
+  <!--class name="com.blueprint.oms.b2c.common.TrackingCode" auto-complete="true"/-->
+  
+</mapping>
+

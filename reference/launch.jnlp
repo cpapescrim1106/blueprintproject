@@ -1,0 +1,235 @@
+<?xml version="1.0" encoding="utf-8"?>
+<jnlp spec="1.0+" codebase="http://ws1.bp-solutions.net/US/FL/acc071817/omsclient" href="launch.jnlp">
+<information>
+  <title>Blueprint OMS v4.8.1</title>
+  <vendor>Blueprint Solutions LLC</vendor>
+  <homepage href="www.blueprintsolutions.us"/>
+  <description>Blueprint OMS Client Application</description>
+  <description kind="short">An application which allows a user to user to access the Blueprint Office Management System (OMS)</description>
+  <icon href="shared/B.gif"/>
+  <shortcut online="true">
+    <desktop/>
+    <menu submenu="Blueprint OMS"/>
+  </shortcut>
+</information>
+<security>
+  <all-permissions/>
+</security>
+<update check="always"/>
+<resources>
+  <j2se version="1.6+" href="http://java.sun.com/products/autodl/j2se" initial-heap-size="64M" max-heap-size="768M"/>
+  <property name="jnlp.CLINIC_PREFERRED_LANGUAGE" value="en_US"/>
+  <!-- property name="jnlp.INACTIVITY_TIMEOUT_PROPERTY" value="3600000"/ -->
+  <!-- property name="jnlp.PHYSICIAN_LETTER_PRINTING_APP_SYSTEM_PROPERTY" value="MSWord"/ -->
+  <property name="jnlp.APPOINTMENT_SEARCH_INTERVAL_PROPERTY" value="365"/>
+  <property name="jnlp.EVENT_DEFAULT_STATUS_PROPERTY" value="2"/>
+  <!-- property name="jnlp.TIMEZONE_OVERRIDE_PROPERTY" value="US/Central"/ -->
+  <property name="sun.java2d.dpiaware" value="false"/>
+</resources>
+<resources>
+  <jar href="shared/lib/M-AudiologicalReportIntegration.jar"/>
+  <jar href="shared/lib/M-CounselEar.jar"/>
+  <jar href="shared/lib/M-ChatController.jar"/>
+  <jar href="shared/lib/M-Date4j.jar"/>
+  <jar href="shared/lib/M-EBillingCommon.jar"/>
+  <jar href="shared/lib/M-EDIMapping.jar"/>
+  <jar href="shared/lib/M-GlobalCommon.jar"/>
+  <jar href="shared/lib/M-JasperReportingSupport.jar"/>
+  <jar href="shared/lib/M-JasperReports.jar"/>
+  <jar href="shared/lib/M-JasperReportImages.jar"/>
+  <jar href="shared/lib/M-JCAPI.jar"/>
+  <jar href="shared/lib/M-Messaging.jar"/>
+  <jar href="shared/lib/M-NoahCommon.jar"/>
+  <jar href="shared/lib/M-OMSAccounting.jar"/>
+  <jar href="shared/lib/M-OMSClient-pro.jar"/>
+  <jar href="shared/lib/M-OMSClientReporting.jar"/>
+  <jar href="shared/lib/M-OMSCommon.jar"/>
+  <jar href="shared/lib/M-OMSCommon_LUC.jar"/>
+  <jar href="shared/lib/M-OMSIcons.jar"/>
+  <jar href="shared/lib/M-OMSDictionaries.jar"/>
+  <jar href="shared/lib/M-OMSServiceCommon.jar"/>
+  <jar href="shared/lib/M-PDFReportingSupport.jar"/>
+  <jar href="shared/lib/M-PricingUpdate.jar"/>
+  <jar href="shared/lib/M-QB.jar"/>
+  <jar href="shared/lib/M-QBCommon.jar"/>
+  <jar href="shared/lib/M-SchedulingCommon.jar"/>
+  <jar href="shared/lib/M-Tuple.jar"/>
+  <jar href="shared/lib/activation-1.1.jar"/>
+  <jar href="shared/lib/activeio-core-3.1.2.jar"/>
+  <jar href="shared/lib/activemq-core-5.5.0.jar"/>
+  <jar href="shared/lib/activemq-protobuf-1.1.jar"/>
+  <jar href="shared/lib/amazon-sqs-java-extended-client-lib-2.0.2.jar"/>
+  <jar href="shared/lib/amazon-sqs-java-messaging-lib-1.0.8.jar"/>
+  <jar href="shared/lib/aopalliance-1.0.jar"/>
+  <jar href="shared/lib/apache-client-2.17.95.jar"/>
+  <jar href="shared/lib/arial-unicode-1.0.0.jar"/>
+  <jar href="shared/lib/aspose.words-16.1.0.jar"/>
+  <jar href="shared/lib/auth-2.17.95.jar"/>
+  <jar href="shared/lib/aws-core-2.17.95.jar"/>
+  <jar href="shared/lib/aws-java-sdk-core-1.12.48.jar"/>
+  <jar href="shared/lib/aws-java-sdk-sqs-1.11.106.jar"/>
+  <jar href="shared/lib/aws-query-protocol-2.17.95.jar"/>
+  <jar href="shared/lib/aws-xml-protocol-2.14.19.jar"/>
+  <jar href="shared/lib/backport-util-concurrent-3.1.jar"/>
+  <jar href="shared/lib/barbecue-1.5-beta1.jar"/>
+  <jar href="shared/lib/batik-awt-util-1.6-1.jar"/>
+  <jar href="shared/lib/batik-css-1.6-1.jar"/>
+  <jar href="shared/lib/batik-dom-1.6-1.jar"/>
+  <jar href="shared/lib/batik-ext-1.6-1.jar"/>
+  <jar href="shared/lib/batik-gui-util-1.6-1.jar"/>
+  <jar href="shared/lib/batik-parser-1.6-1.jar"/>
+  <jar href="shared/lib/batik-svg-dom-1.6-1.jar"/>
+  <jar href="shared/lib/batik-util-1.6-1.jar"/>
+  <jar href="shared/lib/batik-xml-1.6-1.jar"/>
+  <jar href="shared/lib/bcmail-jdk14-1.38.jar"/>
+  <jar href="shared/lib/bcprov-jdk14-1.38.jar"/>
+  <jar href="shared/lib/bctsp-jdk14-1.38.jar"/>
+  <jar href="shared/lib/bfopdf-2.24.3.jar"/>
+  <jar href="shared/lib/bfopdf-jj2000-2.24.3.jar"/>
+  <jar href="shared/lib/bfopdf-license-2.17.jar"/>
+  <jar href="shared/lib/bridj-0.7.0.jar"/>
+  <jar href="shared/lib/castor-core-1.3.jar"/>
+  <jar href="shared/lib/castor-xml-1.3.jar"/>
+  <jar href="shared/lib/clibwrapper_jiio-1.1.jar"/>
+  <jar href="shared/lib/common-image-3.7.0.jar"/>
+  <jar href="shared/lib/common-io-3.7.0.jar"/>
+  <jar href="shared/lib/common-lang-3.7.0.jar"/>
+  <jar href="shared/lib/commons-beanutils-1.8.3.jar"/>
+  <jar href="shared/lib/commons-codec-1.11.jar"/>
+  <jar href="shared/lib/commons-collections-3.2.2.jar"/>
+  <jar href="shared/lib/commons-digester-2.1.jar"/>
+  <jar href="shared/lib/commons-httpclient-3.0.1.jar"/>
+  <jar href="shared/lib/commons-io-2.0.1.jar"/>
+  <jar href="shared/lib/commons-lang-2.6.jar"/>
+  <jar href="shared/lib/commons-lang3-3.11.jar"/>
+  <jar href="shared/lib/commons-logging-1.1.1.jar"/>
+  <jar href="shared/lib/commons-net-2.0.jar"/>
+  <jar href="shared/lib/commons-vfs-1.0.jar"/>
+  <jar href="shared/lib/emoji-java-5.1.1.jar"/>
+  <jar href="shared/lib/fontbox-1.7.1.jar"/>
+  <jar href="shared/lib/geronimo-j2ee-management_1.1_spec-1.0.1.jar"/>
+  <jar href="shared/lib/geronimo-jms_1.1_spec-1.1.1.jar"/>
+  <jar href="shared/lib/gson-2.2.4.jar"/>
+  <jar href="shared/lib/http-client-spi-2.17.95.jar"/>
+  <jar href="shared/lib/httpclient-4.5.13.jar"/>
+  <jar href="shared/lib/httpcore-4.4.13.jar"/>
+  <jar href="shared/lib/ibatis-sqlmap-2.3.4.726.jar"/>
+  <jar href="shared/lib/ical4j-1.0.4.jar"/>
+  <jar href="shared/lib/icu4j-67.1.jar"/>
+  <jar href="shared/lib/imageio-core-3.7.0.jar"/>
+  <jar href="shared/lib/imageio-jpeg-3.7.0.jar"/>
+  <jar href="shared/lib/imageio-metadata-3.7.0.jar"/>
+  <jar href="shared/lib/imageio-tiff-3.7.0.jar"/>
+  <jar href="shared/lib/imq-4.3.jar"/>
+  <jar href="shared/lib/itext-2.1.7.js2.jar"/>
+  <jar href="shared/lib/jackson-databind-2.13.0.jar"/>
+  <jar href="shared/lib/jackson-core-2.13.0.jar"/>
+  <jar href="shared/lib/jackson-annotations-2.13.0.jar"/>
+  <jar href="shared/lib/jacob-1.9.1.jar"/>
+  <jar href="shared/lib/jasperreports-5.5.0.jar"/>
+  <jar href="shared/lib/jasypt-1.7.jar"/>
+  <jar href="shared/lib/jcommon-1.0.15.jar"/>
+  <jar href="shared/lib/jcr-2.0.jar"/>
+  <jar href="shared/lib/jempbox-1.7.1.jar"/>
+  <jar href="shared/lib/jfreechart-1.0.12.jar"/>
+  <jar href="shared/lib/jide-oss-3.5.13.jar"/>
+  <jar href="shared/lib/jms-api-1.1-rev-1.jar"/>
+  <jar href="shared/lib/jna-5.7.0.jar"/>
+  <jar href="shared/lib/jna-platform-5.7.0.jar"/>
+  <jar href="shared/lib/joda-time-2.8.1.jar"/>
+  <jar href="shared/lib/jrc-concurrent-2008.jar"/>
+  <jar href="shared/lib/jrc-crystalcommon-2008.jar"/>
+  <jar href="shared/lib/jrc-crystalcontentmodels-2008.jar"/>
+  <jar href="shared/lib/jrc-crystaldatabaseconnectors-2008.jar"/>
+  <jar href="shared/lib/jrc-crystalexporters-2008.jar"/>
+  <jar href="shared/lib/jrc-crystalexportingbase-2008.jar"/>
+  <jar href="shared/lib/jrc-crystalformulas-2008.jar"/>
+  <jar href="shared/lib/jrc-crystalqueryengine-2008.jar"/>
+  <jar href="shared/lib/jrc-crystalreportengine-2008.jar"/>
+  <jar href="shared/lib/jrc-crystalreportingcommon-2008.jar"/>
+  <jar href="shared/lib/jrc-icu4j-2008.jar"/>
+  <jar href="shared/lib/jrc-jrcadapter-2008.jar"/>
+  <jar href="shared/lib/jrc-jrcerom-2008.jar"/>
+  <jar href="shared/lib/jrc-keycodedecoder-2008.jar"/>
+  <jar href="shared/lib/jrc-metafilerenderer-2008.jar"/>
+  <jar href="shared/lib/jrc-pojosample-2008.jar"/>
+  <jar href="shared/lib/jrc-rasapp-2008.jar"/>
+  <jar href="shared/lib/jrc-rascore-2008.jar"/>
+  <jar href="shared/lib/jrc-reportviewer-deps-2008.jar"/>
+  <jar href="shared/lib/jrc-rpoifs-2008.jar"/>
+  <jar href="shared/lib/jrc-serialization-2008.jar"/>
+  <jar href="shared/lib/jruby-1.1.jar"/>
+  <jar href="shared/lib/jsoup-1.8.3.jar"/>
+  <jar href="shared/lib/kahadb-5.5.0.jar"/>
+  <jar href="shared/lib/log4j-over-slf4j-1.7.25.jar"/>
+	<jar href="shared/lib/logback-classic-1.1.2.jar"/>
+	<jar href="shared/lib/logback-core-1.1.2.jar"/>
+	<jar href="shared/lib/logentries-appender-1.1.38.jar"/>
+  <jar href="shared/lib/mandrillClient-4.8.1-SNAPSHOT.jar"/>
+  <jar href="shared/lib/mail-1.4.5.jar"/>
+  <jar href="shared/lib/metrics-spi-2.17.95.jar"/>
+  <jar href="shared/lib/migcalendar-6.9.3.jar"/>
+  <jar href="shared/lib/miglayout-core-5.3.jar"/>
+  <jar href="shared/lib/miglayout-swing-5.3.jar"/>
+  <jar href="shared/lib/morena-6.0.jar"/>
+  <jar href="shared/lib/morena-license-6.0.jar"/>
+  <jar href="shared/lib/morena-osx-6.0.jar"/>
+  <jar href="shared/lib/morena-windows-6.0.jar"/>
+  <jar href="shared/lib/netx-0.5-hudson-2.jar"/>
+  <jar href="shared/lib/jsch-0.2.9.jar"/>
+  <jar href="shared/lib/pdfbox-1.7.1.jar"/>
+  <jar href="shared/lib/pdf-renderer-1.0.5.jar"/>
+  <jar href="shared/lib/poi-3.7.jar"/>
+  <jar href="shared/lib/poi-ooxml-3.7.jar"/>
+  <jar href="shared/lib/poi-ooxml-schemas-3.7.jar"/>
+  <jar href="shared/lib/postgresql-42.6.0.jar"/>
+  <jar href="shared/lib/profiles-2.17.95.jar"/>
+  <jar href="shared/lib/protocol-core-2.17.95.jar"/>
+  <jar href="shared/lib/reactive-streams-1.0.3.jar"/>
+  <jar href="shared/lib/regions-2.17.95.jar"/>
+  <jar href="shared/lib/rxtxcomm-6.0.jar"/>
+  <jar href="shared/lib/s3-2.14.19.jar"/>
+  <jar href="shared/lib/sdk-core-2.17.95.jar"/>
+  <jar href="shared/lib/servlet-api-2.5.jar"/>
+  <jar href="shared/lib/sigplus2-6.0.jar"/>
+  <jar href="shared/lib/slf4j-api-1.7.6.jar"/>
+  <jar href="shared/lib/spring-aop-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-asm-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-beans-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-context-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-core-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-expression-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-jms-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-tx-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-web-3.1.3.RELEASE.jar"/>
+  <jar href="shared/lib/spring-xml-1.2.1.jar"/>
+  <jar href="shared/lib/sqs-2.17.99.jar"/>
+  <jar href="shared/lib/sns-2.17.95.jar"/>
+  <jar href="shared/lib/sns-extended-client-2.0.1.jar"/>
+  <jar href="shared/lib/swing-layout-1.0.3.jar"/>
+  <jar href="shared/lib/swingx-all-1.6.5-1.jar"/>
+  <jar href="shared/lib/swingx-mavensupport-1.6.5-1.jar"/>
+  <jar href="shared/lib/thumbnailator-0.4.7.jar"/>
+  <jar href="shared/lib/tika-core-1.1.jar"/>
+  <jar href="shared/lib/utils-2.17.95.jar"/>
+  <jar href="shared/lib/webcam-capture-0.3.12.jar"/>
+  <jar href="shared/lib/xbean-spring-3.12.jar"/>
+  <jar href="shared/lib/xercesImpl-2.12.2.jar"/>
+  <jar href="shared/lib/xml-apis-1.4.01.jar"/>
+  <jar href="shared/lib/xmlParserAPIs-2.0.2.jar"/>
+  <jar href="shared/lib/aspectjtools-1.6.12.jar"/>
+  <jar href="shared/lib/cglib-2.2.jar"/>
+  <jar href="shared/lib/asm-3.1.jar"/>
+  <jar href="shared/lib/beansbinding-1.2.1.jar"/>
+  <jar href="shared/lib/RapidSpell-3.0.0.jar"/>
+  <jar href="shared/lib/ipp-v3-java-data-6.0.7.jar"/>
+  <jar href="shared/lib/ipp-v3-java-devkit-6.0.7-jar-with-dependencies.jar"/>
+  <jar href="shared/lib/oauth2-platform-api-6.0.7-jar-with-dependencies.jar"/>
+  <jar href="shared/lib/okhttp-2.7.5.jar"/>
+  <jar href="shared/lib/okhttp-3.6.0.jar"/>
+  <jar href="shared/lib/okio-1.11.0.jar"/>
+  <jar href="shared/lib/payloadoffloading-common-2.1.2.jar"/>
+  <nativelib href="shared/lib/jacob-dll-1.9.1.jar"/>
+</resources>
+<application-desc main-class="com.blueprint.oms.gui.OMSClient"/>
+</jnlp>
