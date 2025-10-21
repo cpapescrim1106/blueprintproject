@@ -18,6 +18,11 @@ npm install
 npm run dev
 ```
 
+> ℹ️ This dashboard reuses the Convex functions defined in the parent
+> directory (`../convex`). The `npm run dev` script automatically starts
+> them by running `npx convex dev` from the repository root, so make sure
+> the root `.env.local` contains the correct Convex deployment settings.
+
 If you're reading this README on GitHub and want to use this template, run:
 
 ```

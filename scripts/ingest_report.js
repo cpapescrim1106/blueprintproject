@@ -43,6 +43,12 @@ async function main() {
     skip_empty_lines: true,
   });
 
+  const sanitizeKey = (key) =>
+    key
+      .replace(/[\r\n\t]+/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+
   const capturedAt =
     argv.capturedAt !== undefined
       ? Number(argv.capturedAt)
@@ -61,7 +67,7 @@ async function main() {
       rowIndex: index,
       data: Object.fromEntries(
         Object.entries(row).map(([key, value]) => [
-          key,
+          sanitizeKey(key),
           value === undefined || value === null ? "" : String(value),
         ]),
       ),
