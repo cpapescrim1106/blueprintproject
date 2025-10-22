@@ -31,6 +31,7 @@ export default function DashboardPage() {
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionLog, setActionLog] = useState<string | null>(null);
 
+  const activePatients = useQuery(api.reports.activePatientsKpi, {});
   const ingestions = useQuery(api.reports.listIngestions, {
     reportName: reportFilter ? reportFilter : undefined,
     limit: 100,
@@ -169,6 +170,20 @@ export default function DashboardPage() {
             </pre>
           ) : null}
         </header>
+
+        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-md border bg-background p-4 shadow-sm">
+            <p className="text-xs font-medium uppercase text-muted-foreground">
+              Active patients
+            </p>
+            <p className="mt-2 text-3xl font-semibold">
+              {activePatients ? activePatients.count.toLocaleString() : "—"}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Distinct patients with tentative appointments scheduled in the future
+            </p>
+          </div>
+        </section>
 
         <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
           <aside className="flex h-full flex-col gap-2 overflow-hidden rounded-md border">

@@ -12,7 +12,6 @@ Example:
 from __future__ import annotations
 
 import argparse
-import csv
 import json
 import os
 import re
@@ -49,7 +48,7 @@ def run_command(
     timeout: int | None = None,
 ) -> subprocess.CompletedProcess[str]:
     print(f"\n$ {' '.join(cmd)}")
-    return subprocess.run(
+    completed = subprocess.run(
         cmd,
         check=True,
         cwd=cwd,
@@ -58,6 +57,11 @@ def run_command(
         capture_output=True,
         timeout=timeout,
     )
+    if completed.stdout:
+        print(completed.stdout.rstrip())
+    if completed.stderr:
+        print(completed.stderr.rstrip(), file=sys.stderr)
+    return completed
 
 
 def ensure_report_exporter_compiled() -> None:
@@ -204,38 +208,6 @@ def iter_period_chunks(start: date, end: date, *, chunk_days: int) -> list[tuple
         chunks.append((cursor, chunk_end))
         cursor = chunk_end + timedelta(days=1)
     return chunks
-
-
-def slugify(value: str) -> str:
-    cleaned = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_")
-    return cleaned.lower() or "report"
-
-
-def combine_csv_files(csv_paths: list[Path], destination: Path) -> None:
-    header: list[str] | None = None
-    destination.parent.mkdir(parents=True, exist_ok=True)
-
-    with destination.open("w", newline="", encoding="utf-8") as outfile:
-        writer: csv.writer | None = None
-        for csv_path in csv_paths:
-            with csv_path.open(newline="", encoding="utf-8") as infile:
-                reader = csv.reader(infile)
-                file_header = next(reader, None)
-                if file_header is None:
-                    continue
-                if header is None:
-                    header = file_header
-                    writer = csv.writer(outfile)
-                    writer.writerow(header)
-                elif header != file_header:
-                    raise SystemExit(
-                        f"CSV header mismatch detected when combining files. First header: {header}, "
-                        f"{csv_path} header: {file_header}"
-                    )
-                assert writer is not None  # for type checkers
-                writer.writerows(reader)
-
-
 def ingest_csv(csv_path: Path, report_name: str, source_key: str, captured_at: int) -> None:
     cmd = [
         "node",
@@ -333,8 +305,7 @@ def main() -> None:
         chunks = [(start_date, end_date)]
 
     existing_jrprints = set(output_dir.glob("*.jrprint"))
-    csv_paths: list[Path] = []
-    captured_values: list[int] = []
+    chunk_records: list[tuple[Path, str, int]] = []
     chunk_count = len(chunks)
 
     for index, (chunk_start, chunk_end) in enumerate(chunks, 1):
@@ -359,29 +330,25 @@ def main() -> None:
         csv_path = convert_to_csv(jrprint)
         print(f"Chunk {index}: Generated CSV → {csv_path}")
 
-        csv_paths.append(csv_path)
-        captured_values.append(captured_at)
+        chunk_records.append((csv_path, source_key, captured_at))
 
-    if not csv_paths:
+    if not chunk_records:
         raise SystemExit("Replay completed but no CSV exports were generated.")
 
-    if len(csv_paths) == 1:
-        final_csv = csv_paths[0]
-        final_source_key = final_csv.stem
-        final_captured_at = captured_values[0]
+    if len(chunk_records) == 1:
+        csv_path, source_key, captured_at = chunk_records[0]
+        ingest_csv(csv_path, args.report_name, source_key, captured_at)
+        print(
+            f"\nPipeline completed across 1 chunk. Report '{args.report_name}' ingested with source key '{source_key}'."
+        )
     else:
-        print(f"\nCombining {len(csv_paths)} chunk CSVs into a single dataset...")
-        final_captured_at = args.captured_at or max(captured_values)
-        combined_basename = f"{slugify(args.report_name)}_full_{int(time.time() * 1000)}"
-        final_csv = output_dir / f"{combined_basename}.csv"
-        combine_csv_files(csv_paths, final_csv)
-        final_source_key = combined_basename
-        print(f"Combined CSV written to {final_csv}")
-
-    ingest_csv(final_csv, args.report_name, final_source_key, final_captured_at)
-    print(
-        f"\nPipeline completed across {len(csv_paths)} chunk(s). Report '{args.report_name}' ingested with source key '{final_source_key}'."
-    )
+        print(f"\nIngesting {len(chunk_records)} chunks individually to avoid oversized uploads...")
+        for index, (csv_path, source_key, captured_at) in enumerate(chunk_records, 1):
+            print(f"-- Ingesting chunk {index}/{len(chunk_records)} → {csv_path.name}")
+            ingest_csv(csv_path, args.report_name, source_key, captured_at)
+        print(
+            f"\nPipeline completed across {len(chunk_records)} chunks. Latest source key: '{chunk_records[-1][1]}'."
+        )
 
 
 if __name__ == "__main__":
