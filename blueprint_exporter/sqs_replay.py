@@ -4,7 +4,7 @@ import json
 import time
 import uuid
 from dataclasses import dataclass
-from typing import Any, Dict, Iterator, List, Optional, TYPE_CHECKING
+from typing import Any, Callable, Dict, Iterator, List, Optional, TYPE_CHECKING
 
 try:
     import boto3  # type: ignore
@@ -109,8 +109,10 @@ class SQSReplayClient:
         max_messages: int = 5,
         visibility_timeout: Optional[int] = None,
         stop_after: Optional[int] = None,
+        on_wait: Optional[Callable[[int], None]] = None,
     ) -> Iterator[ReceivedNotification]:
         received = 0
+        attempts = 0
         params: Dict[str, object] = {
             "QueueUrl": self._config.notification_queue_url,
             "WaitTimeSeconds": wait_time_seconds,
@@ -128,6 +130,9 @@ class SQSReplayClient:
             response = self._sqs.receive_message(**params)
             messages: List[Dict[str, object]] = response.get("Messages", [])  # type: ignore[assignment]
             if not messages:
+                attempts += 1
+                if on_wait:
+                    on_wait(attempts)
                 continue
 
             for raw in messages:
@@ -148,18 +153,30 @@ class SQSReplayClient:
         poll_interval: int = 20,
         visibility_timeout: Optional[int] = None,
         timeout_seconds: int = 300,
+        on_wait: Optional[Callable[[float, int], None]] = None,
+        on_unexpected: Optional[Callable[[ReceivedNotification], None]] = None,
     ) -> Optional[ReceivedNotification]:
         deadline = time.time() + timeout_seconds
+
+        def handle_wait(attempts: int) -> None:
+            if on_wait is None:
+                return
+            remaining = max(0.0, deadline - time.time())
+            on_wait(remaining, attempts)
+
         while time.time() < deadline:
             iterator = self.poll_notifications(
                 wait_time_seconds=poll_interval,
                 max_messages=5,
                 visibility_timeout=visibility_timeout,
                 stop_after=1,
+                on_wait=handle_wait,
             )
             for notification in iterator:
                 if expected_report and notification.report_name != expected_report:
                     # Leave the message on the queue for another consumer.
+                    if on_unexpected:
+                        on_unexpected(notification)
                     continue
                 return notification
         return None

@@ -18,4 +18,14 @@ export default defineSchema({
   })
     .index("by_ingestion", ["ingestionId"])
     .index("by_report", ["reportName"]),
+  appointments: defineTable({
+    uniqueKey: v.string(),
+    reportName: v.string(),
+    data: v.record(v.string(), v.string()),
+    firstCapturedAt: v.number(),
+    lastCapturedAt: v.number(),
+    lastIngestionId: v.id("ingestions"),
+  })
+    .index("by_unique", ["uniqueKey"])
+    .index("by_report", ["reportName"]),
 });

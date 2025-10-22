@@ -1,4 +1,4 @@
-import { mutation } from "./_generated/server";
+import { action, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 const rowInput = v.object({
@@ -6,12 +6,87 @@ const rowInput = v.object({
   data: v.record(v.string(), v.string()),
 });
 
-export const ingestReport = mutation({
+const canonicalize = (record: Record<string, string>) => {
+  const ordered = Object.keys(record)
+    .sort()
+    .reduce<Record<string, string>>((acc, key) => {
+      acc[key] = record[key];
+      return acc;
+    }, {});
+  return JSON.stringify(ordered);
+};
+
+const CHUNK_SIZE = 200;
+const CLEAR_LIMIT = 200;
+
+function chunkRows<T>(rows: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let index = 0; index < rows.length; index += size) {
+    result.push(rows.slice(index, index + size));
+  }
+  return result;
+}
+
+type Stats = { inserted: number; updated: number; unchanged: number };
+
+function mergeStats(target: Stats, delta: Stats) {
+  target.inserted += delta.inserted;
+  target.updated += delta.updated;
+  target.unchanged += delta.unchanged;
+}
+
+export const ingestReport = action({
   args: {
     reportName: v.string(),
     capturedAt: v.number(),
     sourceKey: v.string(),
     rows: v.array(rowInput),
+  },
+  handler: async (ctx, args) => {
+    const prep = await ctx.runMutation("ingest:createIngestion", {
+      reportName: args.reportName,
+      capturedAt: args.capturedAt,
+      sourceKey: args.sourceKey,
+    });
+
+    if (prep.replaced) {
+      while (true) {
+        const removed = await ctx.runMutation("ingest:clearRowsBatch", {
+          ingestionId: prep.ingestionId,
+          limit: CLEAR_LIMIT,
+        });
+        if (removed === 0) {
+          break;
+        }
+      }
+    }
+
+    const stats: Stats = { inserted: 0, updated: 0, unchanged: 0 };
+    for (const chunk of chunkRows(args.rows, CHUNK_SIZE)) {
+      const chunkStats = await ctx.runMutation("ingest:processRowsBatch", {
+        ingestionId: prep.ingestionId,
+        reportName: args.reportName,
+        capturedAt: args.capturedAt,
+        rows: chunk,
+      });
+      mergeStats(stats, chunkStats);
+    }
+
+    await ctx.runMutation("ingest:finalizeIngestion", {
+      ingestionId: prep.ingestionId,
+      capturedAt: args.capturedAt,
+      rowCount: args.rows.length,
+    });
+
+    return { ingestionId: prep.ingestionId, stats };
+  },
+});
+
+export const createIngestion = internalMutation({
+  args: {
+    reportName: v.string(),
+    capturedAt: v.number(),
+    sourceKey: v.string(),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -20,30 +95,119 @@ export const ingestReport = mutation({
       .first();
 
     if (existing) {
-      const existingRows = await ctx.db
-        .query("reportRows")
-        .withIndex("by_ingestion", (q) => q.eq("ingestionId", existing._id))
-        .collect();
-      await Promise.all(existingRows.map((row) => ctx.db.delete(row._id)));
-      await ctx.db.delete(existing._id);
+      await ctx.db.patch(existing._id, {
+        reportName: args.reportName,
+        capturedAt: args.capturedAt,
+        rowCount: 0,
+      });
+      return { ingestionId: existing._id, replaced: true };
     }
 
     const ingestionId = await ctx.db.insert("ingestions", {
       reportName: args.reportName,
       capturedAt: args.capturedAt,
       sourceKey: args.sourceKey,
-      rowCount: args.rows.length,
+      rowCount: 0,
     });
+    return { ingestionId, replaced: false };
+  },
+});
+
+export const clearRowsBatch = internalMutation({
+  args: {
+    ingestionId: v.id("ingestions"),
+    limit: v.number(),
+  },
+  handler: async (ctx, args) => {
+    const rows = await ctx.db
+      .query("reportRows")
+      .withIndex("by_ingestion", (q) => q.eq("ingestionId", args.ingestionId))
+      .take(args.limit);
+    for (const row of rows) {
+      await ctx.db.delete(row._id);
+    }
+    return rows.length;
+  },
+});
+
+export const processRowsBatch = internalMutation({
+  args: {
+    ingestionId: v.id("ingestions"),
+    reportName: v.string(),
+    capturedAt: v.number(),
+    rows: v.array(rowInput),
+  },
+  handler: async (ctx, args) => {
+    const stats: Stats = { inserted: 0, updated: 0, unchanged: 0 };
 
     for (const row of args.rows) {
+      const rowData = { ...row.data };
+      const uniqueKey = rowData.__uniqueKey;
+      if (uniqueKey) {
+        delete rowData.__uniqueKey;
+      }
+
       await ctx.db.insert("reportRows", {
-        ingestionId,
+        ingestionId: args.ingestionId,
         reportName: args.reportName,
         rowIndex: row.rowIndex,
-        data: row.data,
+        data: rowData,
       });
+
+      if (!uniqueKey) {
+        continue;
+      }
+
+      const existing = await ctx.db
+        .query("appointments")
+        .withIndex("by_unique", (q) => q.eq("uniqueKey", uniqueKey))
+        .first();
+
+      if (!existing) {
+        await ctx.db.insert("appointments", {
+          uniqueKey,
+          reportName: args.reportName,
+          data: rowData,
+          firstCapturedAt: args.capturedAt,
+          lastCapturedAt: args.capturedAt,
+          lastIngestionId: args.ingestionId,
+        });
+        stats.inserted += 1;
+        continue;
+      }
+
+      const existingSignature = canonicalize(existing.data);
+      const incomingSignature = canonicalize(rowData);
+      if (existingSignature !== incomingSignature) {
+        await ctx.db.patch(existing._id, {
+          data: rowData,
+          lastCapturedAt: args.capturedAt,
+          lastIngestionId: args.ingestionId,
+        });
+        stats.updated += 1;
+      } else {
+        await ctx.db.patch(existing._id, {
+          lastCapturedAt: args.capturedAt,
+          lastIngestionId: args.ingestionId,
+        });
+        stats.unchanged += 1;
+      }
     }
 
-    return ingestionId;
+    return stats;
+  },
+});
+
+export const finalizeIngestion = internalMutation({
+  args: {
+    ingestionId: v.id("ingestions"),
+    capturedAt: v.number(),
+    rowCount: v.number(),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.ingestionId, {
+      capturedAt: args.capturedAt,
+      rowCount: args.rowCount,
+    });
   },
 });

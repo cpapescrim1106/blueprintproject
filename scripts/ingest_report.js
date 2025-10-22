@@ -2,6 +2,7 @@
 
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const dotenv = require("dotenv");
 const { ConvexHttpClient } = require("convex/browser");
 const { parse } = require("csv-parse/sync");
@@ -49,6 +50,22 @@ async function main() {
       .replace(/\s+/g, " ")
       .trim();
 
+  const sanitizeValue = (value) =>
+    value === undefined || value === null
+      ? ""
+      : String(value)
+          .replace(/[\r\n\t]+/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+
+  const uniqueKeyColumns = [
+    "Location",
+    "Patient ID",
+    "Appt. date",
+    "Appointment type",
+    "Provider",
+  ];
+
   const capturedAt =
     argv.capturedAt !== undefined
       ? Number(argv.capturedAt)
@@ -65,12 +82,24 @@ async function main() {
     sourceKey,
     rows: rows.map((row, index) => ({
       rowIndex: index,
-      data: Object.fromEntries(
-        Object.entries(row).map(([key, value]) => [
+      data: (() => {
+        const normalizedEntries = Object.entries(row).map(([key, value]) => [
           sanitizeKey(key),
-          value === undefined || value === null ? "" : String(value),
-        ]),
-      ),
+          sanitizeValue(value),
+        ]);
+        const record = Object.fromEntries(normalizedEntries);
+        const uniqueKeyMaterial = [
+          reportName,
+          ...uniqueKeyColumns.map((column) =>
+            (record[column] || "").toLowerCase(),
+          ),
+        ].join("|");
+        record.__uniqueKey = crypto
+          .createHash("sha256")
+          .update(uniqueKeyMaterial)
+          .digest("hex");
+        return record;
+      })(),
     })),
   };
 
@@ -82,8 +111,17 @@ async function main() {
     key: deployKey,
   });
 
-  const ingestionId = await client.mutation("ingest:ingestReport", payload);
-  console.log(`Ingestion complete. New ingestion ID: ${ingestionId}`);
+  const result = await client.action("ingest:ingestReport", payload);
+  if (result && typeof result === "object" && "ingestionId" in result) {
+    console.log(`Ingestion complete. New ingestion ID: ${result.ingestionId}`);
+    if (result.stats) {
+      console.log(
+        `Dedup summary → inserted: ${result.stats.inserted}, updated: ${result.stats.updated}, unchanged: ${result.stats.unchanged}`,
+      );
+    }
+  } else {
+    console.log(`Ingestion complete. Result: ${result}`);
+  }
 }
 
 main().catch((error) => {

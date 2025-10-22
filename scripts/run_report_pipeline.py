@@ -12,14 +12,16 @@ Example:
 from __future__ import annotations
 
 import argparse
+import csv
+import json
 import os
 import re
 import shutil
 import subprocess
 import sys
 import time
+from datetime import date, datetime, timedelta
 from pathlib import Path
-import json
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -39,9 +41,23 @@ def arch_prefix() -> list[str]:
     return []
 
 
-def run_command(cmd: list[str], cwd: Path | None = None, env: dict[str, str] | None = None) -> None:
+def run_command(
+    cmd: list[str],
+    cwd: Path | None = None,
+    env: dict[str, str] | None = None,
+    *,
+    timeout: int | None = None,
+) -> subprocess.CompletedProcess[str]:
     print(f"\n$ {' '.join(cmd)}")
-    subprocess.run(cmd, check=True, cwd=cwd, env=env)
+    return subprocess.run(
+        cmd,
+        check=True,
+        cwd=cwd,
+        env=env,
+        text=True,
+        capture_output=True,
+        timeout=timeout,
+    )
 
 
 def ensure_report_exporter_compiled() -> None:
@@ -64,7 +80,14 @@ def ensure_report_exporter_compiled() -> None:
         run_command(cmd, cwd=PROJECT_ROOT)
 
 
-def replay_report(report_name: str, mode: str, output_dir: Path, extra_args: list[str]) -> None:
+def replay_report(
+    report_name: str,
+    mode: str,
+    output_dir: Path,
+    period_start: str,
+    period_end: str,
+    extra_args: list[str],
+) -> None:
     cmd = [
         sys.executable,
         str(REPLAY_SCRIPT),
@@ -76,11 +99,17 @@ def replay_report(report_name: str, mode: str, output_dir: Path, extra_args: lis
         str(output_dir),
         "--decompress",
     ] + extra_args
+    if period_start:
+        cmd.extend(["--period-start", period_start])
+    if period_end:
+        cmd.extend(["--period-end", period_end])
     run_command(cmd, cwd=PROJECT_ROOT)
 
 
-def latest_jrprint(output_dir: Path) -> Path:
+def latest_jrprint(output_dir: Path, seen: set[Path] | None = None) -> Path:
     jrprints = sorted(output_dir.glob("*.jrprint"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if seen:
+        jrprints = [path for path in jrprints if path not in seen]
     if not jrprints:
         raise SystemExit(f"No .jrprint files found in {output_dir}. Did replay succeed?")
     return jrprints[0]
@@ -139,6 +168,74 @@ def infer_captured_at(source_key: str) -> int:
     return int(time.time() * 1000)
 
 
+def format_date_value(value: date) -> str:
+    return value.strftime("%Y-%m-%d")
+
+
+def parse_date_value(value: str) -> date:
+    return datetime.strptime(value, "%Y-%m-%d").date()
+
+
+def compute_period(window: str, start_override: str | None, end_override: str | None) -> tuple[str, str]:
+    today = date.today()
+    if start_override:
+        period_start = start_override
+    elif window == "full":
+        period_start = "2021-01-01"
+    else:
+        period_start = format_date_value(today - timedelta(days=365))
+
+    if end_override:
+        period_end = end_override
+    else:
+        period_end = format_date_value(today + timedelta(days=365))
+
+    return period_start, period_end
+
+
+def iter_period_chunks(start: date, end: date, *, chunk_days: int) -> list[tuple[date, date]]:
+    if chunk_days < 1:
+        raise SystemExit("--chunk-days must be >= 1 when window=full.")
+
+    chunks: list[tuple[date, date]] = []
+    cursor = start
+    while cursor <= end:
+        chunk_end = min(end, cursor + timedelta(days=chunk_days - 1))
+        chunks.append((cursor, chunk_end))
+        cursor = chunk_end + timedelta(days=1)
+    return chunks
+
+
+def slugify(value: str) -> str:
+    cleaned = re.sub(r"[^A-Za-z0-9]+", "_", value).strip("_")
+    return cleaned.lower() or "report"
+
+
+def combine_csv_files(csv_paths: list[Path], destination: Path) -> None:
+    header: list[str] | None = None
+    destination.parent.mkdir(parents=True, exist_ok=True)
+
+    with destination.open("w", newline="", encoding="utf-8") as outfile:
+        writer: csv.writer | None = None
+        for csv_path in csv_paths:
+            with csv_path.open(newline="", encoding="utf-8") as infile:
+                reader = csv.reader(infile)
+                file_header = next(reader, None)
+                if file_header is None:
+                    continue
+                if header is None:
+                    header = file_header
+                    writer = csv.writer(outfile)
+                    writer.writerow(header)
+                elif header != file_header:
+                    raise SystemExit(
+                        f"CSV header mismatch detected when combining files. First header: {header}, "
+                        f"{csv_path} header: {file_header}"
+                    )
+                assert writer is not None  # for type checkers
+                writer.writerows(reader)
+
+
 def ingest_csv(csv_path: Path, report_name: str, source_key: str, captured_at: int) -> None:
     cmd = [
         "node",
@@ -175,8 +272,28 @@ def parse_args() -> argparse.Namespace:
         help="Override capturedAt timestamp (ms since epoch). Defaults to timestamp parsed from source key or now.",
     )
     parser.add_argument(
+        "--window",
+        choices=["short", "full"],
+        default="short",
+        help="Date window preset. 'short' covers ~1 year back and forward, 'full' spans from 2021-01-01 forward.",
+    )
+    parser.add_argument(
+        "--start-date",
+        help="Override report start date (YYYY-MM-DD).",
+    )
+    parser.add_argument(
+        "--end-date",
+        help="Override report end date (YYYY-MM-DD).",
+    )
+    parser.add_argument(
         "--replay-args",
         help="Additional JSON array of arguments to pass through to replay_reports.py.",
+    )
+    parser.add_argument(
+        "--chunk-days",
+        type=int,
+        default=365,
+        help="When window=full, split the request into chunks of this many days (default: 365).",
     )
     return parser.parse_args()
 
@@ -186,6 +303,16 @@ def main() -> None:
     output_dir = Path(args.output_dir).resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
     ensure_aws_credentials()
+
+    period_start, period_end = compute_period(
+        args.window,
+        args.start_date,
+        args.end_date,
+    )
+
+    print(
+        f"Requesting '{args.report_name}' for period {period_start} → {period_end}"
+    )
 
     extra_args: list[str] = []
     if args.replay_args:
@@ -197,19 +324,63 @@ def main() -> None:
         except ValueError as exc:
             raise SystemExit(f"--replay-args must be a JSON array of strings: {exc}")
 
-    replay_report(args.report_name, args.mode, output_dir, extra_args)
+    start_date = parse_date_value(period_start)
+    end_date = parse_date_value(period_end)
 
-    jrprint = latest_jrprint(output_dir)
-    source_key = jrprint.stem
-    captured_at = args.captured_at or infer_captured_at(source_key)
+    if args.window == "full":
+        chunks = iter_period_chunks(start_date, end_date, chunk_days=args.chunk_days)
+    else:
+        chunks = [(start_date, end_date)]
 
-    print(f"Latest JRPrint: {jrprint}")
-    csv_path = convert_to_csv(jrprint)
-    print(f"Generated CSV: {csv_path}")
+    existing_jrprints = set(output_dir.glob("*.jrprint"))
+    csv_paths: list[Path] = []
+    captured_values: list[int] = []
+    chunk_count = len(chunks)
 
-    ingest_csv(csv_path, args.report_name, source_key, captured_at)
+    for index, (chunk_start, chunk_end) in enumerate(chunks, 1):
+        chunk_start_str = format_date_value(chunk_start)
+        chunk_end_str = format_date_value(chunk_end)
+        print(f"\n=== Chunk {index}/{chunk_count}: {chunk_start_str} → {chunk_end_str} ===")
+        replay_report(
+            args.report_name,
+            args.mode,
+            output_dir,
+            chunk_start_str,
+            chunk_end_str,
+            extra_args,
+        )
+
+        jrprint = latest_jrprint(output_dir, existing_jrprints)
+        existing_jrprints.add(jrprint)
+        source_key = jrprint.stem
+        captured_at = args.captured_at or infer_captured_at(source_key)
+
+        print(f"Chunk {index}: Latest JRPrint → {jrprint}")
+        csv_path = convert_to_csv(jrprint)
+        print(f"Chunk {index}: Generated CSV → {csv_path}")
+
+        csv_paths.append(csv_path)
+        captured_values.append(captured_at)
+
+    if not csv_paths:
+        raise SystemExit("Replay completed but no CSV exports were generated.")
+
+    if len(csv_paths) == 1:
+        final_csv = csv_paths[0]
+        final_source_key = final_csv.stem
+        final_captured_at = captured_values[0]
+    else:
+        print(f"\nCombining {len(csv_paths)} chunk CSVs into a single dataset...")
+        final_captured_at = args.captured_at or max(captured_values)
+        combined_basename = f"{slugify(args.report_name)}_full_{int(time.time() * 1000)}"
+        final_csv = output_dir / f"{combined_basename}.csv"
+        combine_csv_files(csv_paths, final_csv)
+        final_source_key = combined_basename
+        print(f"Combined CSV written to {final_csv}")
+
+    ingest_csv(final_csv, args.report_name, final_source_key, final_captured_at)
     print(
-        f"\nPipeline completed. Report '{args.report_name}' ingested with source key '{source_key}'."
+        f"\nPipeline completed across {len(csv_paths)} chunk(s). Report '{args.report_name}' ingested with source key '{final_source_key}'."
     )
 
 

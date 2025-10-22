@@ -16,7 +16,11 @@ if str(PROJECT_ROOT) not in sys.path:
 from blueprint_exporter.catalog import load_catalog, iter_names
 from blueprint_exporter.config import ReplayConfig
 from blueprint_exporter.jasper import decompress_jasperprint, export_with_jasperstarter
-from blueprint_exporter.payloads import ReportMessages, load_processed_messages
+from blueprint_exporter.payloads import (
+    ReportMessages,
+    ReportRequest,
+    load_processed_messages,
+)
 from blueprint_exporter.s3_download import create_s3_client, ensure_object
 from blueprint_exporter.sqs_replay import SQSReplayClient, create_sqs_client
 
@@ -24,9 +28,9 @@ from blueprint_exporter.sqs_replay import SQSReplayClient, create_sqs_client
 DEFAULT_CONFIG = ReplayConfig(
     region_name="us-east-2",
     request_queue_url="https://sqs.us-east-2.amazonaws.com/438704307340/reportRequest_us1_v4_8_1.fifo",
-    notification_queue_url="https://sqs.us-east-2.amazonaws.com/438704307340/FL_accQueue_UserNotification_50_Christophers-MacBook-Prolocal",
+    notification_queue_url="https://sqs.us-east-2.amazonaws.com/438704307340/FL_accQueue_UserNotification_50_maclan",
     bucket_name="bp-temp-us",
-    processed_messages_path=Path("captures/2025-10-20/processed/report_messages.json"),
+    processed_messages_path=Path("captures/2025-10-22/processed/report_messages.json"),
 )
 
 
@@ -92,6 +96,14 @@ def parse_args() -> argparse.Namespace:
         action="append",
         help="Export format(s) when jasperstarter is provided (e.g. pdf, xls, xlsx).",
     )
+    parser.add_argument(
+        "--period-start",
+        help="Override the report's periodStart parameter (YYYY-MM-DD).",
+    )
+    parser.add_argument(
+        "--period-end",
+        help="Override the report's periodEnd parameter (YYYY-MM-DD).",
+    )
     return parser.parse_args()
 
 
@@ -103,6 +115,26 @@ def ensure_output_dir(path: str) -> Path:
 
 def print_json(obj: object) -> None:
     print(json.dumps(obj, indent=2))
+
+
+def apply_period_overrides(
+    request: ReportRequest,
+    period_start: Optional[str],
+    period_end: Optional[str],
+) -> ReportRequest:
+    if not period_start and not period_end:
+        return request
+
+    message = json.loads(request.message_json())
+    parameters = message.setdefault("parameterMap", {})
+    if period_start:
+        parameters["periodStart"] = period_start
+    if period_end:
+        parameters["periodEnd"] = period_end
+    return ReportRequest(
+        message=message,
+        attributes=dict(request.attributes),
+    )
 
 
 def offline_flow(
@@ -160,8 +192,11 @@ def live_flow(
     decompress: bool,
     jasperstarter: Optional[Path],
     export_formats: Optional[Iterable[str]],
+    period_start: Optional[str],
+    period_end: Optional[str],
 ) -> None:
-    request = messages.request_by_name(report_name)
+    base_request = messages.request_by_name(report_name)
+    request = apply_period_overrides(base_request, period_start, period_end)
 
     sqs_client = create_sqs_client(DEFAULT_CONFIG.region_name)
     replay_client = SQSReplayClient(sqs_client, DEFAULT_CONFIG)
@@ -172,13 +207,36 @@ def live_flow(
         print_json(send_response)
         return
 
+    print(
+        f"Waiting for report result (timeout {poll_timeout}s, polling every {poll_wait}s)...",
+        flush=True,
+    )
+
+    def log_wait(remaining: float, attempts: int) -> None:
+        if attempts == 1 or attempts % 3 == 0:
+            remaining_int = max(0, int(remaining))
+            print(
+                f"  Still waiting for '{report_name}' (attempt {attempts}, ~{remaining_int}s remaining)...",
+                flush=True,
+            )
+
     print("Sent SQS message:")
     print_json(send_response)
+
+    def log_unexpected(notification):
+        print(
+            "  Received unrelated notification:",
+            json.dumps(notification.body, indent=2),
+            sep="\n",
+            flush=True,
+        )
 
     notification = replay_client.wait_for_result(
         expected_report=report_name,
         poll_interval=poll_wait,
         timeout_seconds=poll_timeout,
+        on_wait=log_wait,
+        on_unexpected=log_unexpected,
     )
     if not notification:
         raise SystemExit("Timed out waiting for report response.")
@@ -269,6 +327,8 @@ def main() -> None:
             decompress=args.decompress,
             jasperstarter=args.jasperstarter,
             export_formats=export_formats,
+            period_start=args.period_start,
+            period_end=args.period_end,
         )
 
 
