@@ -23,15 +23,16 @@ function formatTimestamp(ms: number) {
 type Ingestion =
   FunctionReturnType<typeof api.reports.listIngestions>[number];
 
-export default function DashboardPage() {
+export default function IngestionsPage() {
   const [reportFilter, setReportFilter] = useState("");
   const [selectedIngestion, setSelectedIngestion] =
     useState<Id<"ingestions"> | null>(null);
-  const [pendingAction, setPendingAction] = useState<"refresh" | "full" | null>(null);
+  const [pendingAction, setPendingAction] = useState<"refresh" | "full" | null>(
+    null,
+  );
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionLog, setActionLog] = useState<string | null>(null);
 
-  const activePatients = useQuery(api.reports.activePatientsKpi, {});
   const ingestions = useQuery(api.reports.listIngestions, {
     reportName: reportFilter ? reportFilter : undefined,
     limit: 100,
@@ -45,9 +46,7 @@ export default function DashboardPage() {
 
   const rows = useQuery(
     api.reports.getRowsForIngestion,
-    selectedIngestion
-      ? { ingestionId: selectedIngestion, limit: 200 }
-      : "skip",
+    selectedIngestion ? { ingestionId: selectedIngestion, limit: 200 } : "skip",
   );
 
   const selected = useMemo<Ingestion | null>(() => {
@@ -105,59 +104,42 @@ export default function DashboardPage() {
   );
 
   return (
-    <main className="min-h-screen bg-background text-foreground">
+    <div className="bg-background text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
         <header className="flex flex-col gap-4 border-b pb-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">
-              Blueprint Report Dashboard
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              Replay reports, store them in Convex, and explore the latest
-              ingestions.
-            </p>
-          </div>
-          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-            <label className="w-full md:w-80">
-              <span className="text-xs uppercase text-muted-foreground">
-                Report filter
-              </span>
+          <h1 className="text-3xl font-semibold tracking-tight">Ingestion explorer</h1>
+          <p className="text-sm text-muted-foreground">
+            Inspect raw report snapshots, preview sample rows, and rerun the pipeline on demand.
+          </p>
+          <div className="grid gap-3 md:grid-cols-[minmax(0,320px)_auto] md:items-end">
+            <label className="flex flex-col gap-1">
+              <span className="text-xs uppercase text-muted-foreground">Report filter</span>
               <input
-                className="mt-1 w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 placeholder="Leave blank to view all reports"
                 value={reportFilter}
                 onChange={(event) => setReportFilter(event.target.value)}
               />
             </label>
-            {selected ? (
-              <div className="rounded-md border px-3 py-2 text-xs text-muted-foreground">
-                Latest ingestion selected: {formatTimestamp(selected.capturedAt)}
-              </div>
-            ) : null}
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Button
-              onClick={() => triggerPipeline("refresh")}
-              disabled={pendingAction !== null}
-            >
-              {pendingAction === "refresh"
-                ? "Refreshing appointments..."
-                : "Refresh (±1 year)"}
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => triggerPipeline("full")}
-              disabled={pendingAction !== null}
-            >
-              {pendingAction === "full"
-                ? "Running full rebuild..."
-                : "Full rebuild (2021 → future)"}
-            </Button>
-            {pendingAction !== null ? (
-              <span className="text-xs text-muted-foreground">
-                Pipeline in progress… this can take a minute.
-              </span>
-            ) : null}
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                onClick={() => triggerPipeline("refresh")}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction === "refresh"
+                  ? "Refreshing appointments..."
+                  : "Refresh (±1 year)"}
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => triggerPipeline("full")}
+                disabled={pendingAction !== null}
+              >
+                {pendingAction === "full"
+                  ? "Running full rebuild..."
+                  : "Full rebuild (2021 → future)"}
+              </Button>
+            </div>
           </div>
           {actionMessage ? (
             <div className="rounded-md border border-dashed bg-muted/40 p-3 text-xs text-muted-foreground">
@@ -170,20 +152,6 @@ export default function DashboardPage() {
             </pre>
           ) : null}
         </header>
-
-        <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-md border bg-background p-4 shadow-sm">
-            <p className="text-xs font-medium uppercase text-muted-foreground">
-              Active patients
-            </p>
-            <p className="mt-2 text-3xl font-semibold">
-              {activePatients ? activePatients.count.toLocaleString() : "—"}
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              Distinct patients with tentative appointments scheduled in the future
-            </p>
-          </div>
-        </section>
 
         <section className="grid gap-4 lg:grid-cols-[280px_1fr]">
           <aside className="flex h-full flex-col gap-2 overflow-hidden rounded-md border">
@@ -223,57 +191,77 @@ export default function DashboardPage() {
           </aside>
 
           <section className="overflow-hidden rounded-md border bg-background shadow-sm">
-            <div className="border-b bg-muted/40 px-4 py-3">
-              <h2 className="text-sm font-semibold">Report rows</h2>
-              {selected ? (
-                <p className="text-xs text-muted-foreground">
-                  Showing up to 200 rows for <strong>{selected.reportName}</strong>
-                </p>
-              ) : (
-                <p className="text-xs text-muted-foreground">
-                  Select an ingestion to preview its rows.
-                </p>
-              )}
-            </div>
-            <div className="overflow-x-auto">
-              {rows === undefined ? (
-                <p className="p-4 text-sm text-muted-foreground">Loading rows…</p>
-              ) : !rows || rows.length === 0 ? (
-                <p className="p-4 text-sm text-muted-foreground">
-                  No rows to display.
-                </p>
-              ) : (
-                <table className="min-w-full divide-y divide-border text-sm">
-                  <thead className="bg-muted/60">
-                    <tr>
-                      {columns.map((column) => (
-                        <th
-                          key={column}
-                          scope="col"
-                          className="whitespace-nowrap px-3 py-2 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                        >
-                          {column}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border bg-background">
-                    {rows.map((row) => (
-                      <tr key={row._id} className="hover:bg-muted/40">
+            {selected ? (
+              <div className="flex flex-col gap-4 p-4">
+                <header className="flex flex-col gap-2 border-b pb-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div>
+                      <h2 className="text-xl font-semibold text-foreground">
+                        {selected.reportName}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Source key {selected.sourceKey}
+                      </p>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      {formatTimestamp(selected.capturedAt)}
+                    </div>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {selected.rowCount.toLocaleString()} rows · ingestion ID{" "}
+                    {selected._id}
+                  </div>
+                </header>
+                <div className="overflow-auto rounded-md border">
+                  <table className="min-w-full divide-y divide-border text-sm">
+                    <thead className="bg-muted/40">
+                      <tr>
                         {columns.map((column) => (
-                          <td key={column} className="whitespace-nowrap px-3 py-2">
-                            {row.data[column] ?? ""}
-                          </td>
+                          <th
+                            key={column}
+                            className="whitespace-nowrap px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-muted-foreground"
+                          >
+                            {column}
+                          </th>
                         ))}
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+                    </thead>
+                    <tbody className="divide-y divide-border bg-background">
+                      {rows && rows.length > 0 ? (
+                        rows.map((row, index) => (
+                          <tr key={row._id ?? index}>
+                            {columns.map((column) => (
+                              <td
+                                key={column}
+                                className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground"
+                              >
+                                {String(row.data[column] ?? "")}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td
+                            colSpan={columns.length || 1}
+                            className="px-3 py-4 text-center text-xs text-muted-foreground"
+                          >
+                            No rows to display for this ingestion yet.
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            ) : (
+              <div className="flex h-full items-center justify-center p-12 text-sm text-muted-foreground">
+                Select an ingestion to preview rows.
+              </div>
+            )}
           </section>
         </section>
       </div>
-    </main>
+    </div>
   );
 }

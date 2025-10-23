@@ -40,6 +40,7 @@ export const ingestReport = action({
     reportName: v.string(),
     capturedAt: v.number(),
     sourceKey: v.string(),
+    targetTable: v.string(),
     rows: v.array(rowInput),
   },
   handler: async (ctx, args) => {
@@ -67,6 +68,7 @@ export const ingestReport = action({
         ingestionId: prep.ingestionId,
         reportName: args.reportName,
         capturedAt: args.capturedAt,
+        targetTable: args.targetTable,
         rows: chunk,
       });
       mergeStats(stats, chunkStats);
@@ -135,10 +137,23 @@ export const processRowsBatch = internalMutation({
     ingestionId: v.id("ingestions"),
     reportName: v.string(),
     capturedAt: v.number(),
+    targetTable: v.string(),
     rows: v.array(rowInput),
   },
   handler: async (ctx, args) => {
     const stats: Stats = { inserted: 0, updated: 0, unchanged: 0 };
+    const TABLE_CONFIG = {
+      appointments: "appointments",
+      patientRecalls: "patientRecalls",
+      activePatients: "activePatients",
+      salesByIncomeAccount: "salesByIncomeAccount",
+    } as const;
+
+    const targetTable = args.targetTable as keyof typeof TABLE_CONFIG;
+    const tableName = TABLE_CONFIG[targetTable];
+    if (!tableName) {
+      throw new Error(`Unsupported target table '${args.targetTable}'.`);
+    }
 
     for (const row of args.rows) {
       const rowData = { ...row.data };
@@ -159,12 +174,12 @@ export const processRowsBatch = internalMutation({
       }
 
       const existing = await ctx.db
-        .query("appointments")
+        .query(tableName as any)
         .withIndex("by_unique", (q) => q.eq("uniqueKey", uniqueKey))
         .first();
 
       if (!existing) {
-        await ctx.db.insert("appointments", {
+        await ctx.db.insert(tableName as any, {
           uniqueKey,
           reportName: args.reportName,
           data: rowData,

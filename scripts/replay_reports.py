@@ -28,9 +28,9 @@ from blueprint_exporter.sqs_replay import SQSReplayClient, create_sqs_client
 DEFAULT_CONFIG = ReplayConfig(
     region_name="us-east-2",
     request_queue_url="https://sqs.us-east-2.amazonaws.com/438704307340/reportRequest_us1_v4_8_1.fifo",
-    notification_queue_url="https://sqs.us-east-2.amazonaws.com/438704307340/FL_accQueue_UserNotification_50_maclan",
+    notification_queue_url="https://sqs.us-east-2.amazonaws.com/438704307340/FL_accQueue_UserNotification_50_Christophers-MacBook-Prolocal",
     bucket_name="bp-temp-us",
-    processed_messages_path=Path("captures/2025-10-22/processed/report_messages.json"),
+    processed_messages_path=Path("captures/merged_report_messages.json"),
 )
 
 

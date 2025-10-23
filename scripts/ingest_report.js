@@ -15,8 +15,14 @@ async function main() {
   }
 
   const argv = minimist(process.argv.slice(2), {
-    string: ["file", "report", "source", "capturedAt"],
-    alias: { f: "file", r: "report", s: "source", c: "capturedAt" },
+    string: ["file", "report", "source", "capturedAt", "table"],
+    alias: {
+      f: "file",
+      r: "report",
+      s: "source",
+      c: "capturedAt",
+      t: "table",
+    },
   });
 
   const file = argv.file;
@@ -36,6 +42,47 @@ async function main() {
     );
     process.exit(1);
   }
+
+  const REPORT_CONFIG = {
+    "Referral Source - Appointments": {
+      targetTable: "appointments",
+      uniqueKeyColumns: [
+        "Location",
+        "Patient ID",
+        "Appt. date",
+        "Appointment type",
+        "Provider",
+      ],
+    },
+    "Patient Recalls": {
+      targetTable: "patientRecalls",
+      uniqueKeyColumns: null,
+    },
+    "All Active Patients": {
+      targetTable: "activePatients",
+      uniqueKeyColumns: null,
+    },
+    "Campaign export": {
+      targetTable: "activePatients",
+      uniqueKeyColumns: null,
+    },
+    "Sales by Income Account": {
+      targetTable: "salesByIncomeAccount",
+      uniqueKeyColumns: null,
+    },
+  };
+
+  const baseConfig = REPORT_CONFIG[reportName] || null;
+  const targetTable = argv.table || baseConfig?.targetTable;
+  if (!targetTable) {
+    const available = Object.keys(REPORT_CONFIG).join(", ");
+    console.error(
+      `Unknown report '${reportName}'. Pass --table <tableName> or update REPORT_CONFIG. Known reports: ${available}`,
+    );
+    process.exit(1);
+  }
+
+  const uniqueKeyColumns = baseConfig?.uniqueKeyColumns || null;
 
   const csvPath = path.resolve(file);
   const csvData = fs.readFileSync(csvPath, "utf8");
@@ -58,13 +105,22 @@ async function main() {
           .replace(/\s+/g, " ")
           .trim();
 
-  const uniqueKeyColumns = [
-    "Location",
-    "Patient ID",
-    "Appt. date",
-    "Appointment type",
-    "Provider",
-  ];
+  const buildUniqueKey = (record) => {
+    if (uniqueKeyColumns && Array.isArray(uniqueKeyColumns) && uniqueKeyColumns.length > 0) {
+      const uniqueKeyMaterial = [
+        reportName,
+        ...uniqueKeyColumns.map((column) =>
+          (record[column] || "").toLowerCase(),
+        ),
+      ].join("|");
+      return crypto.createHash("sha256").update(uniqueKeyMaterial).digest("hex");
+    }
+
+    const orderedEntries = Object.keys(record)
+      .sort()
+      .map((key) => `${key}=${record[key]}`);
+    return crypto.createHash("sha256").update(orderedEntries.join("|")).digest("hex");
+  };
 
   const capturedAt =
     argv.capturedAt !== undefined
@@ -80,6 +136,7 @@ async function main() {
     reportName,
     capturedAt,
     sourceKey,
+    targetTable,
     rows: rows.map((row, index) => ({
       rowIndex: index,
       data: (() => {
@@ -88,16 +145,7 @@ async function main() {
           sanitizeValue(value),
         ]);
         const record = Object.fromEntries(normalizedEntries);
-        const uniqueKeyMaterial = [
-          reportName,
-          ...uniqueKeyColumns.map((column) =>
-            (record[column] || "").toLowerCase(),
-          ),
-        ].join("|");
-        record.__uniqueKey = crypto
-          .createHash("sha256")
-          .update(uniqueKeyMaterial)
-          .digest("hex");
+        record.__uniqueKey = buildUniqueKey(record);
         return record;
       })(),
     })),

@@ -33,6 +33,14 @@ CLIENT_CLASSPATH_FILE = PROJECT_ROOT / "client_classpath.txt"
 REPLAY_SCRIPT = PROJECT_ROOT / "scripts" / "replay_reports.py"
 INGEST_SCRIPT = PROJECT_ROOT / "scripts" / "ingest_report.js"
 
+REPORT_TARGET_TABLES: dict[str, str] = {
+    "Referral Source - Appointments": "appointments",
+    "Patient Recalls": "patientRecalls",
+    "All Active Patients": "activePatients",
+    "Campaign export": "activePatients",
+    "Sales by Income Account": "salesByIncomeAccount",
+}
+
 
 def arch_prefix() -> list[str]:
     if sys.platform == "darwin" and shutil.which("arch"):
@@ -208,7 +216,13 @@ def iter_period_chunks(start: date, end: date, *, chunk_days: int) -> list[tuple
         chunks.append((cursor, chunk_end))
         cursor = chunk_end + timedelta(days=1)
     return chunks
-def ingest_csv(csv_path: Path, report_name: str, source_key: str, captured_at: int) -> None:
+def ingest_csv(
+    csv_path: Path,
+    report_name: str,
+    source_key: str,
+    captured_at: int,
+    target_table: str,
+) -> None:
     cmd = [
         "node",
         str(INGEST_SCRIPT),
@@ -220,6 +234,8 @@ def ingest_csv(csv_path: Path, report_name: str, source_key: str, captured_at: i
         source_key,
         "--capturedAt",
         str(captured_at),
+        "--table",
+        target_table,
     ]
     run_command(cmd, cwd=PROJECT_ROOT, env=os.environ.copy())
 
@@ -266,6 +282,10 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=365,
         help="When window=full, split the request into chunks of this many days (default: 365).",
+    )
+    parser.add_argument(
+        "--table",
+        help="Override the target table for ingestion (otherwise derived from report name).",
     )
     return parser.parse_args()
 
@@ -335,9 +355,15 @@ def main() -> None:
     if not chunk_records:
         raise SystemExit("Replay completed but no CSV exports were generated.")
 
+    target_table = args.table or REPORT_TARGET_TABLES.get(args.report_name)
+    if not target_table:
+        raise SystemExit(
+            f"No target table configured for report '{args.report_name}'. Use --table to specify one."
+        )
+
     if len(chunk_records) == 1:
         csv_path, source_key, captured_at = chunk_records[0]
-        ingest_csv(csv_path, args.report_name, source_key, captured_at)
+        ingest_csv(csv_path, args.report_name, source_key, captured_at, target_table)
         print(
             f"\nPipeline completed across 1 chunk. Report '{args.report_name}' ingested with source key '{source_key}'."
         )
@@ -345,7 +371,7 @@ def main() -> None:
         print(f"\nIngesting {len(chunk_records)} chunks individually to avoid oversized uploads...")
         for index, (csv_path, source_key, captured_at) in enumerate(chunk_records, 1):
             print(f"-- Ingesting chunk {index}/{len(chunk_records)} → {csv_path.name}")
-            ingest_csv(csv_path, args.report_name, source_key, captured_at)
+            ingest_csv(csv_path, args.report_name, source_key, captured_at, target_table)
         print(
             f"\nPipeline completed across {len(chunk_records)} chunks. Latest source key: '{chunk_records[-1][1]}'."
         )
