@@ -152,7 +152,7 @@ export default function RecallsPage() {
 
   return (
     <div className="bg-background text-foreground">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 p-6">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-1 py-6 md:px-2 lg:px-4">
         <header className="flex flex-col gap-2 border-b pb-4">
           <div>
             <h1 className="text-3xl font-semibold tracking-tight">

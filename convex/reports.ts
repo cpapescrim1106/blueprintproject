@@ -765,13 +765,17 @@ export const recallPatientDetails = query({
         lastSaleMs: null,
       };
 
-      const deviceAgeDays =
-        salesInfo.lastSaleMs !== null
-          ? Math.max(
-              0,
-              Math.round((todayMs - salesInfo.lastSaleMs) / MS_PER_DAY),
-            )
-          : null;
+      let deviceAgeDays: number | null = null;
+      let deviceAgeYears: number | null = null;
+      if (salesInfo.lastSaleMs !== null) {
+        deviceAgeDays = Math.max(
+          0,
+          Math.round((todayMs - salesInfo.lastSaleMs) / MS_PER_DAY),
+        );
+        deviceAgeYears = Number(
+          ((todayMs - salesInfo.lastSaleMs) / (MS_PER_DAY * 365)).toFixed(1),
+        );
+      }
 
       return {
         patientId,
@@ -804,6 +808,7 @@ export const recallPatientDetails = query({
           lastSaleMs: salesInfo.lastSaleMs,
           lastSaleIso: formatIsoDate(salesInfo.lastSaleMs),
           deviceAgeDays,
+          deviceAgeYears,
         },
       };
     });
