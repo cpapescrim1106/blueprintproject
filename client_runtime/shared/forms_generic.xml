@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Application context for the remote OMSService client -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:amq="http://activemq.apache.org/schema/core"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+    <!-- Generic forms -->
+    <bean id="genericFormFieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.ConcreteGenericFormFieldGenerator" scope="singleton">
+        <!-- Property to override the clinic location on a form (BPOMS-1690) -->
+        <!-- The 'key' location is replaced with the 'value' location -->
+        <!-- This property should be set on the form specific field generator subclass if the override only applies to that form -->
+        <!-- property name="clinicOverrideMap">
+            <map>
+                <entry key="3" value="1"/>
+                <entry key="4" value="1"/>               
+            </map>
+        </property -->
+        
+        <!-- Property to override field values on a form -->
+        <!-- This property should be set on the form specific field generator subclass if the override only applies to that form -->
+        <!-- property name="fieldOverrideMap">
+            <map>
+                <entry key="field1" value="overrideValue1"/>
+                <entry key="field2" value="overrideValue1"/>               
+            </map>
+        </property -->
+    </bean>
+    
+    <bean id="clientSummaryFieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.ClientSummaryFieldGenerator" scope="singleton"/>
+    <bean id="lossAndDamageClaimFormFieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.LossAndDamageClaimFormFieldGenerator" scope="singleton"/>
+    <bean id="newAidOrderFormFieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.NewAidOrderFormFieldGenerator" scope="singleton"/>
+    <bean id="returnAidOrderFormFieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.ReturnAidOrderFormFieldGenerator" scope="singleton"/>
+    <bean id="audiologicalFieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.AudiologicalFieldGenerator" scope="singleton"/>
+   
+    <bean id="lossandDamageContextValidator" class="com.blueprint.oms.common.clientreporting.context.LossAndDamageContextValidator" scope="singleton"/>
+    <bean id="newAidOrderContextValidator" class="com.blueprint.oms.common.clientreporting.context.NewAidOrderContextValidator" scope="singleton"/>
+    <bean id="invalidContextValidator" class="com.blueprint.oms.common.clientreporting.context.InvalidContextValidator" scope="singleton"/>
+    
+    <bean id="lossAndDamageClaimForm" class="com.blueprint.oms.common.clientreporting.ReportTemplate" parent="genericFormFieldGenerator">
+        <property name="reportType" value="10"/>
+        <property name="description" value="Loss and Damage Claim Form"/>
+        <property name="contextValidator" ref="lossandDamageContextValidator"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/lossAndDamageClaimForm.jasper"/>
+        <property name="fieldGenerator" ref="lossAndDamageClaimFormFieldGenerator"/>
+        <property name="isUseMultiParameterPromptingDialog" value="true"/>
+    </bean>
+    
+     <bean id="newAidOrderForm" class="com.blueprint.oms.common.clientreporting.ReportTemplate" scope="singleton">
+        <property name="reportType" value="10"/>
+        <property name="description" value="Generic - New aid order form"/>
+        <property name="contextValidator" ref="newAidOrderContextValidator"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/newAidOrder.jasper"/>
+        <property name="fieldGenerator" ref="newAidOrderFormFieldGenerator"/>
+        <property name="isUseMultiParameterPromptingDialog" value="true"/>        
+    </bean>
+    
+    <bean id="repairOrder" class="com.blueprint.oms.common.clientreporting.ReportTemplate" scope="singleton">
+        <property name="reportType" value="10"/>
+        <property name="description" value="Generic - Repair order"/>
+        <property name="filename" value="repairOrder.pdf"/>
+        <property name="fieldGenerator" ref="newAidOrderFormFieldGenerator"/>
+        <property name="contextValidator" ref="lossandDamageContextValidator"/>
+        <property name="dateFormat" value="dd/MM/yyyy"/>
+
+        <property name="logoLocation">
+            <list value-type="java.lang.Integer">
+                <value>0</value>
+            </list>
+        </property>   
+    </bean>    
+		
+    <bean id="hearingLossAssessment" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="-1"/>
+        <property name="description" value="Hearing Loss Assessment"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/hearingLossAssessment.jasper"/>
+        <property name="fieldGenerator" ref="audiologicalFieldGenerator"/>
+        <property name="isUseMultiParameterPromptingDialog" value="true"/>
+    </bean>
+		
+    <bean id="physicianReportHearingLossAssessment" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="-1"/>
+        <property name="description" value="Physician Report Hearing Loss Assessment"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/physicianReportHearingLossAssessment.jasper"/>
+        <property name="fieldGenerator" ref="audiologicalFieldGenerator"/>
+        <property name="isUseMultiParameterPromptingDialog" value="true"/>
+    </bean>
+    
+    <bean id="hearingAssessment_PDF" class="com.blueprint.oms.common.clientreporting.AudiogramReportTemplate">
+        <property name="reportType" value="14"/>
+        <property name="description" value="Hearing Assessment"/>
+        <property name="filename" value="hearingAssessment.pdf"/>
+        <property name="fieldGenerator" ref="audiologicalFieldGenerator"/>
+        <property name="dateFormat" value="yyyy/MM/dd"/>
+        
+        <property name="logoLocation">
+            <list value-type="java.lang.Integer">
+                <value>0</value>
+            </list>
+        </property>
+
+        <!-- As of 2.5, this is no longer needed as we use an image placeholder for the entire graph (DK 2016/05/04) -->
+        <!-- property name="audiogramGrapherSpec" value="0"/>
+        <property name="audiogramLocation" value="0"/>
+        <property name="audiogramImageDPI" value="83"/>
+        <property name="audiogramCoordinates">
+            <list value-type="java.lang.Integer">
+                <value>20</value>
+                <value>290</value>
+            </list>
+        </property -->
+    </bean>
+
+    <bean id="physicianReportHearingAssessment_PDF" class="com.blueprint.oms.common.clientreporting.AudiogramReportTemplate">
+        <property name="reportType" value="14"/>
+        <property name="description" value="Physician Report Hearing Assessment"/>
+        <property name="filename" value="physicianReportHearingAssessment.pdf"/>
+        <property name="fieldGenerator" ref="audiologicalFieldGenerator"/>
+        <property name="dateFormat" value="yyyy/MM/dd"/>
+
+        <property name="logoLocation">
+            <list value-type="java.lang.Integer">
+                <value>0</value>
+                <value>1</value>
+            </list>
+        </property>
+
+        <!-- As of 2.5, this is no longer needed as we use an image placeholder for the entire graph (DK 2016/05/04) -->
+        <!-- property name="audiogramGrapherSpec" value="0"/>
+        <property name="audiogramLocation" value="1"/>
+        <property name="audiogramImageDPI" value="83"/>
+        <property name="audiogramCoordinates">
+            <list value-type="java.lang.Integer">
+                <value>20</value>
+                <value>290</value>
+            </list>
+        </property -->
+    </bean>
+    
+    <bean id="clientMiscCreditMemo" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="16"/>
+        <property name="description" value="Credit memo"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/clientMiscCreditMemo.jasper"/>
+    </bean>  
+    
+    <bean id="clientWriteOff" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="17"/>
+        <property name="description" value="Write off"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/clientWriteOff.jasper"/>
+    </bean>
+    
+    <bean id="insurerWriteOff" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="19"/>
+        <property name="description" value="Write off"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/insurerWriteOff.jasper"/>
+    </bean>   
+    
+    <bean id="recallDetails" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="22"/>
+        <property name="description" value="Patient recall details"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/recallDetails.jasper"/>
+    </bean>    
+    
+    <bean id="monthlyInventoryReport" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="23"/>
+        <property name="description" value="Monthly Inventory Report"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/monthlyInventoryReport.jasper"/>
+    </bean>
+    
+    <bean id="clientForms" class="java.util.LinkedList" scope="prototype">
+        <constructor-arg>
+            <list>
+                <ref bean="lossAndDamageClaimForm"/>
+                <ref bean="newAidOrderForm"/>
+                <ref bean="hearingLossAssessment"/>
+                <ref bean="physicianReportHearingLossAssessment"/>
+                <ref bean="hearingAssessment_PDF"/>                
+                <ref bean="physicianReportHearingAssessment_PDF"/>
+                <ref bean="clientMiscCreditMemo"/>
+                <ref bean="clientWriteOff"/>
+                <ref bean="insurerWriteOff"/>
+                <ref bean="repairOrder"/>
+                <ref bean="recallDetails"/>
+                <ref bean="monthlyInventoryReport"/>
+            </list>
+        </constructor-arg>
+    </bean>
+</beans>

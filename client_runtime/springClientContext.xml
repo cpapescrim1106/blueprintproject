@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Application context for the remote OMSService client -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:amq="http://activemq.apache.org/schema/core"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xmlns:lang="http://www.springframework.org/schema/lang"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd
+  http://www.springframework.org/schema/lang http://www.springframework.org/schema/lang/spring-lang-2.0.xsd">
+ 
+    <import resource="shared/springClientContext_base.xml"/>
+    <import resource="shared/noah.xml"/>
+    <import resource="shared/forms_US.xml"/>
+    <!-- import resource="shared/italy.xml"/ -->
+    
+    <!-- Alternate GUIController configuration, used if the GUIController class is written using the Decorator pattern
+         Can be enabled by adding the below two beans to an individual clinic's springClientContext.xml, and then 
+         un-commenting them
+    <bean id="guiControllerBase" class="${GUICONTROLLER_CLASS}" autowire="byName">
+        <property name="reportDisplayEngine">
+            <bean class="com.blueprint.oms.gui.reporting.viewer.jasper.OMSJRDisplayEngine" scope="prototype" />
+        </property>
+        <property name="scanEngine" ref="scanEngine"/>
+    </bean>
+
+    <bean id="guiController" class="${GUICONTROLLER_DECORATOR_CLASS}" autowire="byName">
+        <constructor-arg ref="guiControllerBase"/>
+    </bean -->
+    
+    <!-- bean id="customForms" class="java.util.LinkedList" scope="prototype">
+        <constructor-arg>
+            <list>
+                <ref bean="customForm"/>
+            </list>
+        </constructor-arg>
+    </bean -->
+    
+    <!-- CounselEar login credentials -->
+    <!-- bean id="counselEarUserMap" class="java.util.HashMap" scope="prototype">
+        <constructor-arg>
+            <map>
+                <entry key="steve">
+                    <bean class="com.blueprint.oms.common.user.User">
+                        <property name="username" value="aleem@bp-solutions.net"/>
+                        <property name="password" value="blueprint"/>
+                    </bean>
+                </entry>
+            </map>
+        </constructor-arg>
+    </bean -->
+    
+    <!-- lang:jruby id="clientOrderSpecification"
+        script-interfaces="com.blueprint.oms.common.accounting.ClientOrderSpecification"
+        script-source="http://192.168.1.10:8080/omsclient/ClientOrderSpecification_ON_dhc.rb">
+    </lang:jruby -->
+    
+    <!-- lang:jruby id="returnOrderSpecification"
+        script-interfaces="com.blueprint.oms.common.accounting.ReturnOrderSpecification"
+        script-source="http://192.168.1.10:8080/omsclient/ReturnOrderSpecification_ON_luc.rb">
+    </lang:jruby -->
+    
+    <!-- lang:jruby id="healthCardValidationSpecification"
+        script-interfaces="com.blueprint.oms.gui.client.HealthCardValidationSpecification"
+        script-source="http://192.168.1.10:8080/omsclient/HealthCardValidationSpecification_ES.rb">
+    </lang:jruby -->
+    
+    <!-- Health card format location mapping -->
+    <!-- bean id="healthCardFormatMapping" class="java.util.HashMap" scope="prototype">
+        <constructor-arg>
+            <map>
+                <entry key="1" value="#### ### ### UU"/>
+            </map>
+        </constructor-arg>
+    </bean -->
+    
+    <!-- Manufacturer barcode serial number mapping -->
+    <!-- bean id="manufacturerBarcodeSerialNumberMapping" class="java.util.HashMap" scope="prototype">
+        <constructor-arg>
+            <map>
+                <entry key="1">
+                    <bean class="com.mallardsoft.tuple.Pair">
+                        <constructor-arg index="0" value="^\([0-9]+\)(.*)$"/--> <!-- Serial number pattern -->
+                        <!--constructor-arg index="1" value="1"/--> <!-- Comma separated list of groups containing the serial number -->
+                     <!--/bean>
+                </entry>
+            </map>
+        </constructor-arg>
+    </bean -->
+</beans>

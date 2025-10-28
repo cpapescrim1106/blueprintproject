@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Application context for the remote OMSService client -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:amq="http://activemq.apache.org/schema/core"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+    <import resource="forms_generic.xml"/> 
+    <import resource="forms_US_hcfa.xml"/>          
+
+    <!-- US specific forms -->
+    <bean id="purchaseAgreementFieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.us.PurchaseAgreementFieldGenerator" scope="singleton"/>
+    <bean id="purchaseAgreementContextValidator" class="com.blueprint.oms.common.clientreporting.context.us.PurchaseAgreementContextValidator" scope="singleton"/>
+
+    <bean id="superbill" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="-1"/>
+        <property name="description" value="Audiology Superbill"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/us/superbill.jasper"/>
+        <property name="backgroundFilename" value="com/blueprint/oms/reporting/jasper/reports/us/images/superbill.gif"/>
+        <property name="isPrintBackground" value="true"/>
+    </bean>
+    
+    <bean id="superbill_PDF" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="7"/>
+        <property name="description" value="Audiology Superbill (PDF)"/>
+        <property name="filename" value="US/superbill.pdf"/>
+        <property name="fieldGenerator" ref="genericFormFieldGenerator"/>
+        <property name="dateFormat" value="MM/dd/yyyy"/>        
+    </bean>    
+    
+    <bean id="clientWriteOff" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="17"/>
+        <property name="description" value="Write off"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/us/clientWriteOff_US.jasper"/>
+    </bean>
+    
+    <bean id="insurerWriteOff" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="19"/>
+        <property name="description" value="Write off"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/us/insurerWriteOff_US.jasper"/>
+    </bean>
+    
+    <bean id="repairOrder" class="com.blueprint.oms.common.clientreporting.ReportTemplate" scope="singleton">
+        <property name="reportType" value="10"/>
+        <property name="description" value="Repair order"/>
+        <property name="filename" value="repairOrder.pdf"/>
+        <property name="fieldGenerator" ref="newAidOrderFormFieldGenerator"/>
+        <property name="contextValidator" ref="lossandDamageContextValidator"/>
+        <property name="dateFormat" value="MM/dd/yyyy"/>
+
+        <property name="logoLocation">
+            <list value-type="java.lang.Integer">
+                <value>0</value>
+            </list>
+        </property>   
+    </bean>
+    
+    <bean id="sprintCapTel" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="-1"/>
+        <property name="description" value="Sprint CapTel"/>
+        <property name="filename" value="US/sprintCapTel.pdf"/>
+        <property name="fieldGenerator" ref="genericFormFieldGenerator"/>
+        <property name="dateFormat" value="MM/dd/yyyy"/>        
+    </bean>     
+    
+    <bean id="clientForms" class="java.util.LinkedList" scope="prototype">
+        <constructor-arg>
+            <list>
+                <ref bean="HCFA1500"/>
+                <ref bean="HCFA1500_02_12"/>
+                <ref bean="HCFA1500_02_12_PDF"/>
+                <ref bean="superbill"/>
+                <ref bean="superbill_PDF"/>
+                <ref bean="lossAndDamageClaimForm"/>
+                <ref bean="newAidOrderForm"/>
+                <ref bean="hearingLossAssessment"/>
+                <ref bean="physicianReportHearingLossAssessment"/>
+                <ref bean="hearingAssessment_PDF"/>
+                <ref bean="physicianReportHearingAssessment_PDF"/>
+                <ref bean="clientMiscCreditMemo"/>
+                <ref bean="clientWriteOff"/>
+                <ref bean="insurerWriteOff"/>
+                <ref bean="repairOrder"/>
+                <ref bean="sprintCapTel"/>
+            </list>
+        </constructor-arg>
+    </bean>
+</beans>

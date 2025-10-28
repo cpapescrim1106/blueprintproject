@@ -1,0 +1,419 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Application context for the remote OMSService client -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:amq="http://activemq.apache.org/schema/core"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+        
+    <!-- Online code version. If this is higher than the client's version, the client should exit and invoke the launch URL to update the locally deployed code -->
+    <bean id="codeVersion" class="java.lang.String">
+        <constructor-arg value="4.8.1"/>
+    </bean>
+    
+    <bean id="bplinkCodeVersion" class="java.lang.String">
+        <constructor-arg value="4.1"/>
+    </bean>    
+  
+    <!-- Property place holder location -->
+    <bean id="properties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+         <property name="locations">
+            <list>                
+                <value>${javaws.codebase}shared/clientConfig_generic.properties</value>
+                <value>${javaws.codebase}clientConfig_base.properties</value>
+                <value>${javaws.codebase}clientConfig.properties</value>
+            </list>
+        </property>
+    </bean>
+        
+    <bean id="propertyConfigurer" class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+         <property name="properties" ref="properties"/>
+    </bean>
+   
+    <!-- CodeBase (for non-JavaWS testing purposes only) -->
+    <bean id="codeBase" class="java.net.URL">
+        <constructor-arg value="http://www.bp-solutions.net/omsclient-rbhc190308/"/>
+    </bean> 
+    
+    <!-- Server application and QB message queue settings -->
+    <bean id="serverSpec" class="com.blueprint.oms.common.meta.OMSServerSpec">
+      <property name="serviceUrl" value="${SERVICE_URL}"/>
+      <property name="serverName" value="${SERVER_NAME}"/>
+    </bean>
+
+    <!-- General settings (locale, etc.) -->
+    <bean id="generalSettings" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="properties">
+            <props>
+                <prop key="MARKETING_CONFIG_FILENAME">${MARKETING_CONFIG_FILENAME}</prop>
+                <prop key="QB_MAPPING_FILENAME">${QB_MAPPING_FILENAME}</prop>
+                <prop key="QBO_MAPPING_REQUEST_FILENAME">${QBO_MAPPING_REQUEST_FILENAME}</prop>
+                <prop key="QBO_MAPPING_RESPONSE_FILENAME">${QBO_MAPPING_RESPONSE_FILENAME}</prop>
+                <prop key="SHOW_MISSING_COVERAGE_WARNING">${SHOW_MISSING_COVERAGE_WARNING}</prop>
+                <prop key="ENABLE_POSTAL_ZIP_CODE_LOOKUP">${ENABLE_POSTAL_ZIP_CODE_LOOKUP}</prop>
+                <prop key="ALLOW_CHANGING_BANK_DEPOSIT_ACCOUNT">${ALLOW_CHANGING_BANK_DEPOSIT_ACCOUNT}</prop>
+                <prop key="ALLOW_CHANGING_PETTY_CASH_ACCOUNT">${ALLOW_CHANGING_PETTY_CASH_ACCOUNT}</prop>
+                <prop key="SHOW_NEW_AID_ORDER_FORM">${SHOW_NEW_AID_ORDER_FORM}</prop>
+                <prop key="PROMPT_FOR_AID_COLOR_NOTES">${PROMPT_FOR_AID_COLOR_NOTES}</prop>
+                <prop key="PROMPT_FOR_ALD_SERIAL_NUMBER">${PROMPT_FOR_ALD_SERIAL_NUMBER}</prop>
+                <prop key="EXPORT_NEW_PATIENTS_TO_NOAH">${EXPORT_NEW_PATIENTS_TO_NOAH}</prop>
+                <prop key="EXPORT_NEW_QUICKADDS_TO_NOAH">${EXPORT_NEW_QUICKADDS_TO_NOAH}</prop>
+                <prop key="LIMIT_NOAH_PATIENT_EXPORT_DETAILS">${LIMIT_NOAH_PATIENT_EXPORT_DETAILS}</prop>
+                <prop key="REPORTS_URL">${REPORTS_URL}</prop>
+                <prop key="COUNSELEAR_URL">${COUNSELEAR_URL}</prop>
+                <prop key="BLUEPRINT_BLOG_URL">${BLUEPRINT_BLOG_URL}</prop>
+                <prop key="BPLINK_PATH">${BPLINK_PATH}</prop>
+                <prop key="ENABLE_ICD_CODE">${ENABLE_ICD_CODE}</prop>
+                <prop key="ENABLE_CLIENT_REFERENCE_NUMBER">${ENABLE_CLIENT_REFERENCE_NUMBER}</prop>
+                <prop key="SKIP_ERROR_MSGS_AUTOMATICALLY">${SKIP_ERROR_MSGS_AUTOMATICALLY}</prop>
+		<prop key="SHOW_MANUFACTURER_CREDIT_RETURN">${SHOW_MANUFACTURER_CREDIT_RETURN}</prop>
+		<prop key="JOURNAL_TYPES_FILTER">${JOURNAL_TYPES_FILTER}</prop>
+                <prop key="ALLOW_INVENTORY_DELIVERY_WITHOUT_BILL">${ALLOW_INVENTORY_DELIVERY_WITHOUT_BILL}</prop>
+		<prop key="SHOW_PREFERRED_LANGUAGE">${SHOW_PREFERRED_LANGUAGE}</prop>
+                <prop key="SHOW_PREFERRED_LANGUAGE_IN_MARKETING">${SHOW_PREFERRED_LANGUAGE_IN_MARKETING}</prop>                
+                <prop key="ALLOW_RECEIVING_AIDS_WITHOUT_BILL">${ALLOW_RECEIVING_AIDS_WITHOUT_BILL}</prop>
+                <prop key="SHOW_CLIENT_SUMMARY_STATS_INITIALLY">${SHOW_CLIENT_SUMMARY_STATS_INITIALLY}</prop>
+                <prop key="FAMILY_PHYSICIAN_REQUIRED">${FAMILY_PHYSICIAN_REQUIRED}</prop>
+                <prop key="GET_TELEPHONE_NUMBER_DIGITS_ONLY">${GET_TELEPHONE_NUMBER_DIGITS_ONLY}</prop>
+                <prop key="AUTOMATICALLY_ARCHIVE_SIGNED_DOCUMENT">${AUTOMATICALLY_ARCHIVE_SIGNED_DOCUMENT}</prop>    
+                <prop key="ALLOW_CHOOSING_DIFFERENT_USER_SIGNATURE">${ALLOW_CHOOSING_DIFFERENT_USER_SIGNATURE}</prop>
+                <prop key="SHARED_TEMPLATE_VAULTS">${SHARED_TEMPLATE_VAULTS}</prop> 
+                <prop key="HEARING_AID_COLOR_REQUIRED">${HEARING_AID_COLOR_REQUIRED}</prop>
+                <prop key="ENABLE_RECEIVE_STOCK_MENU_ITEM">${ENABLE_RECEIVE_STOCK_MENU_ITEM}</prop>
+                <prop key="IS_NAV_ACCOUNTING_SYSTEM">${IS_NAV_ACCOUNTING_SYSTEM}</prop>
+                <prop key="ALLOW_CHANGING_BILL_TO">${ALLOW_CHANGING_BILL_TO}</prop>
+                <prop key="ENABLE_AUTOMATIC_COST_ALLOCATION">${ENABLE_AUTOMATIC_COST_ALLOCATION}</prop>
+                <prop key="CLIENT_PRACTITIONER_REQUIRED">${CLIENT_PRACTITIONER_REQUIRED}</prop>
+                <prop key="CLIENT_EMAIL_ADDRESS_REQUIRED">${CLIENT_EMAIL_ADDRESS_REQUIRED}</prop>
+                <prop key="QA_EMAIL_ADDRESS_REQUIRED">${QA_EMAIL_ADDRESS_REQUIRED}</prop>
+                <prop key="USE_CLIENT_PRACTITIONER_FOR_ORDER">${USE_CLIENT_PRACTITIONER_FOR_ORDER}</prop>
+                <prop key="FILTER_CLIENT_PRACTITIONER_BASED_ON_LOCATION">${FILTER_CLIENT_PRACTITIONER_BASED_ON_LOCATION}</prop>
+                <prop key="ORDER_PRACTITIONER_EDITABLE">${ORDER_PRACTITIONER_EDITABLE}</prop>
+                <prop key="ALLOW_INVOICES_TOTALING_ZERO">${ALLOW_INVOICES_TOTALING_ZERO}</prop>
+                <prop key="DISABLE_RETURN_TO_MANUFACTURER">${DISABLE_RETURN_TO_MANUFACTURER}</prop>
+                <prop key="DISABLE_RETURN_WHEN_AID_STATUS_IS_RECEIVED">${DISABLE_RETURN_WHEN_AID_STATUS_IS_RECEIVED}</prop>
+                <prop key="ORDER_PRACTITIONER_REQUIRED">${ORDER_PRACTITIONER_REQUIRED}</prop>
+                <prop key="NEW_AID_ORDER_OPTION_REQUIRED">${NEW_AID_ORDER_OPTION_REQUIRED}</prop>
+                <prop key="DEFAULT_BANK_ACCOUNT_TO_PLEASE_SELECT">${DEFAULT_BANK_ACCOUNT_TO_PLEASE_SELECT}</prop>
+                <prop key="FINANCING_TERMS_VISIBLE">${FINANCING_TERMS_VISIBLE}</prop>                
+                <prop key="REQUIRE_FINANCING_TERMS">${REQUIRE_FINANCING_TERMS}</prop>
+                <prop key="DASHBOARDS_BASE_URL">${DASHBOARDS_BASE_URL}</prop>
+                <prop key="SUBMIT_STOCK_ORDER_ELECTRONICALLY">${SUBMIT_STOCK_ORDER_ELECTRONICALLY}</prop>
+                <prop key="ENABLE_JASPER_REPORTING">${ENABLE_JASPER_REPORTING}</prop>
+                <prop key="REMOTE_MAIL_MERGE_CAMPAIGN_SIZE_THRESHOLD">${REMOTE_MAIL_MERGE_CAMPAIGN_SIZE_THRESHOLD}</prop>
+                <prop key="INSURER_NAME_MAX_LENGTH">${INSURER_NAME_MAX_LENGTH}</prop>
+                <prop key="SURNAME_GIVENNAME_MAX_LENGTH">${SURNAME_GIVENNAME_MAX_LENGTH}</prop>
+                <prop key="SCANNED_DOCUMENT_DIRECTORY">${SCANNED_DOCUMENT_DIRECTORY}</prop>
+                <prop key="SHOW_MANUFACTURER_WHEN_ORDERING_ACCESSORIES">${SHOW_MANUFACTURER_WHEN_ORDERING_ACCESSORIES}</prop>
+                <prop key="MATCH_HCFA_DIAGNOSIS_CODES_WITH_AUDIOGRAM_DATE">${MATCH_HCFA_DIAGNOSIS_CODES_WITH_AUDIOGRAM_DATE}</prop>
+                <prop key="SALES_HISTORY_MAX_RESULTS">${SALES_HISTORY_MAX_RESULTS}</prop>
+                <prop key="AR_TRANSACTION_PAGING_LIMIT">${AR_TRANSACTION_PAGING_LIMIT}</prop>
+                <prop key="CLAIMS_TRACKING_TRANSACTION_PAGING_LIMIT">${CLAIMS_TRACKING_TRANSACTION_PAGING_LIMIT}</prop>
+                <prop key="CLIENT_RECALLS_PAGING_LIMIT">${CLIENT_RECALLS_PAGING_LIMIT}</prop>
+                <prop key="DEFAULT_AUDIOGRAM_PROVIDER_ID">${DEFAULT_AUDIOGRAM_PROVIDER_ID}</prop>
+                <prop key="DEFAULT_AUDIOGRAM_TEST_METHOD_ID">${DEFAULT_AUDIOGRAM_TEST_METHOD_ID}</prop>
+                <prop key="ENABLE_CHEQUE_NUMBER_ADVANCED_SEARCH">${ENABLE_CHEQUE_NUMBER_ADVANCED_SEARCH}</prop>  
+                <prop key="ENABLE_ORDER_ID_ADVANCED_SEARCH">${ENABLE_ORDER_ID_ADVANCED_SEARCH}</prop>         
+                <prop key="ENABLE_PAYMENT_ID_ADVANCED_SEARCH">${ENABLE_PAYMENT_ID_ADVANCED_SEARCH}</prop>        
+                <prop key="ENABLE_CREDIT_ID_ADVANCED_SEARCH">${ENABLE_CREDIT_ID_ADVANCED_SEARCH}</prop>        
+                <prop key="ENABLE_REFUND_ID_ADVANCED_SEARCH">${ENABLE_REFUND_ID_ADVANCED_SEARCH}</prop>        
+                <prop key="DEFAULT_ADVANCED_SEARCH_METHOD">${DEFAULT_ADVANCED_SEARCH_METHOD}</prop>
+                <prop key="ENABLE_SMART_ADVANCED_SEARCH">${ENABLE_SMART_ADVANCED_SEARCH}</prop>
+                <prop key="DISABLE_LOAN_AID_LOCATION_COMBO_BOX_AND_DEFAULT_CLIENT_LOCATION">${DISABLE_LOAN_AID_LOCATION_COMBO_BOX_AND_DEFAULT_CLIENT_LOCATION}</prop>
+                <prop key="SUBMIT_SUPPORT_TICKET_LABEL">${SUBMIT_SUPPORT_TICKET_LABEL}</prop>
+                <prop key="SUBMIT_SUPPORT_TICKET_URL">${SUBMIT_SUPPORT_TICKET_URL}</prop>
+                <prop key="DEFAULT_SERVICE_PLAN">${DEFAULT_SERVICE_PLAN}</prop>                    
+                <prop key="INSURERS_EXCLUDED_FROM_SERVICE_PLAN">${INSURERS_EXCLUDED_FROM_SERVICE_PLAN}</prop>
+                <prop key="TOTAL_RETURN_FEE">${TOTAL_RETURN_FEE}</prop>
+                <prop key="INSURERS_EXCLUDED_FROM_RETURN_FEE">${INSURERS_EXCLUDED_FROM_RETURN_FEE}</prop>
+                <prop key="PATIENT_TYPE_REQUIRED">${PATIENT_TYPE_REQUIRED}</prop>                
+                <prop key="DEFAULT_PAYMENT_LOCATION">${DEFAULT_PAYMENT_LOCATION}</prop>
+                <prop key="DEFAULT_RETURN_LOCATION">${DEFAULT_RETURN_LOCATION}</prop>
+                <prop key="DEFAULT_REFUND_LOCATION">${DEFAULT_REFUND_LOCATION}</prop>
+                <prop key="DEFAULT_MISC_CREDIT_LOCATION">${DEFAULT_MISC_CREDIT_LOCATION}</prop>
+                <prop key="ORDER_PRESCRIBER_AS_FITTER">${ORDER_PRESCRIBER_AS_FITTER}</prop>                
+                <prop key="ALLOW_ORDERING_ORDERABLE_ITEMS">${ALLOW_ORDERING_ORDERABLE_ITEMS}</prop>
+                <prop key="ALLOW_CHANGING_ORDERED_AID_MODEL">${ALLOW_CHANGING_ORDERED_AID_MODEL}</prop>                
+                <prop key="ENABLE_SPELL_CHECKER">${ENABLE_SPELL_CHECKER}</prop>
+                <prop key="TRACKDATA_DEBUGGING">${TRACKDATA_DEBUGGING}</prop>
+                <prop key="ENABLE_DAILY_SALES_REC">${ENABLE_DAILY_SALES_REC}</prop>
+                <prop key="RECALL_ASSIGNEE_REQUIRED">${RECALL_ASSIGNEE_REQUIRED}</prop>
+                <prop key="RECALL_STATUS_REQUIRED">${RECALL_STATUS_REQUIRED}</prop>
+                <prop key="RECENT_INTERACTIONS_IN_DAYS">${RECENT_INTERACTIONS_IN_DAYS}</prop>
+                <prop key="PATIENT_SEARCH_STYLE">${PATIENT_SEARCH_STYLE}</prop>
+                <prop key="AUTOMATICALLY_POPULATE_REFERRAL_SOURCE_INFORMATION">${AUTOMATICALLY_POPULATE_REFERRAL_SOURCE_INFORMATION}</prop>
+                <prop key="REFERRAL_SOURCE_INFORMATION_REQUIRED_ON_INVOICE">${REFERRAL_SOURCE_INFORMATION_REQUIRED_ON_INVOICE}</prop>
+                <prop key="AUTO_FILL_ORDER_FITTER">${AUTO_FILL_ORDER_FITTER}</prop>
+                <prop key="USE_CLIENT_PRACTITIONER_FOR_ORDER_PRESCRIBER">${USE_CLIENT_PRACTITIONER_FOR_ORDER_PRESCRIBER}</prop>
+                <prop key="IS_HEARING_CLINIC">${IS_HEARING_CLINIC}</prop>
+                <prop key="ENABLE_ALL_LOCATION_OPTION_ON_CUSTOMER_BROWSER">${ENABLE_ALL_LOCATION_OPTION_ON_CUSTOMER_BROWSER}</prop>
+                <prop key="ALLOW_RESERVING_ORDERED_STOCK_AIDS">${ALLOW_RESERVING_ORDERED_STOCK_AIDS}</prop>
+                <prop key="SHOW_AID_VENDOR_NAME_ON_ACCOUNTING_TRANSACTIONS">${SHOW_AID_VENDOR_NAME_ON_ACCOUNTING_TRANSACTIONS}</prop>
+                <prop key="PATIENT_SELECTOR_HELPER_TYPE">${PATIENT_SELECTOR_HELPER_TYPE}</prop>
+                <prop key="ENABLE_LINKING_JOURNAL_TO_EVENT">${ENABLE_LINKING_JOURNAL_TO_EVENT}</prop>
+                <prop key="SIGNIA_BARCODE_PATTERN">${SIGNIA_BARCODE_PATTERN}</prop>
+		<prop key="SHOW_CLIENT_GROUP_SELECTION_WHEN_CREATING_OR_UPDATING_AN_AUDIOLOGICAL_ASSESSMENT_JOURNAL_ENTRY">${SHOW_CLIENT_GROUP_SELECTION_WHEN_CREATING_OR_UPDATING_AN_AUDIOLOGICAL_ASSESSMENT_JOURNAL_ENTRY}</prop>
+                <prop key="SHOW_AUDIOLOGY_FOR_QUICKADDS">${SHOW_AUDIOLOGY_FOR_QUICKADDS}</prop>
+                <prop key="ENABLE_RECALL_FOLLOW_UP_DATE">${ENABLE_RECALL_FOLLOW_UP_DATE}</prop>
+                <prop key="SHOW_AUDIOLOGIST_REFERRAL_AS_PROVIDER">${SHOW_AUDIOLOGIST_REFERRAL_AS_PROVIDER}</prop>
+                <prop key="SHOW_INACTIVE_PRACTITIONERS_WHEN_EDITING_HISTORICAL_INVOICES">${SHOW_INACTIVE_PRACTITIONERS_WHEN_EDITING_HISTORICAL_INVOICES}</prop>
+                <prop key="ENABLE_LOCATION_SPECIFIC_TOOLBAR_BADGE_ICONS">${ENABLE_LOCATION_SPECIFIC_TOOLBAR_BADGE_ICONS}</prop>                
+                <prop key="PROMPT_FOR_BILLING_PROVIDER_FOR_INSURERS">${PROMPT_FOR_BILLING_PROVIDER_FOR_INSURERS}</prop> 
+                <prop key="ENABLE_REFUND_OPTION_FOR_FULLY_APPLIED_PAYMENTS">${ENABLE_REFUND_OPTION_FOR_FULLY_APPLIED_PAYMENTS}</prop> 
+                <prop key="PROMPT_AND_SHOW_SIGNATURE_ON_CLIENT_JOURNAL_REPORT">${PROMPT_AND_SHOW_SIGNATURE_ON_CLIENT_JOURNAL_REPORT}</prop> 
+                <prop key="ENABLE_CLAIMS_TRACKING">${ENABLE_CLAIMS_TRACKING}</prop> 
+                <prop key="ENABLE_AID_OPTIONS_CATALOGUE">${ENABLE_AID_OPTIONS_CATALOGUE}</prop> 
+                <prop key="DEFAULT_CREATE_PATIENT_LOCATION_TO_PLEASE_SELECT">${DEFAULT_CREATE_PATIENT_LOCATION_TO_PLEASE_SELECT}</prop> 
+                <prop key="AUTO_COVERAGE_INSURERS">${AUTO_COVERAGE_INSURERS}</prop> 
+           
+                <!-- Determines the number of days into the current month a transaction in the previous month can be adjusted -->
+		<prop key="BACKDATE_ACCOUNTING_GRACE_PERIOD">${BACKDATE_ACCOUNTING_GRACE_PERIOD}</prop>
+		
+                <!-- Determines the number of days a transaction can be made/adjusted based on the current day -->
+		<prop key="BACKDATE_ACCOUNTING_GRACE_PERIOD_DAYS">${BACKDATE_ACCOUNTING_GRACE_PERIOD_DAYS}</prop>
+                
+                <!-- Determines the number of hours before a journal entry locks -->
+		<prop key="HOURS_TO_LOCK_JOURNAL">${HOURS_TO_LOCK_JOURNAL}</prop>
+		
+                <!-- Allows a transaction to be made/adjusted prior to the date of the latest similar transaction -->
+		<prop key="ALLOW_BACKDATE_ACCOUNTING_BASED_ON_LATEST_SIMILAR_TRANSACTION_DATE">${ALLOW_BACKDATE_ACCOUNTING_BASED_ON_LATEST_SIMILAR_TRANSACTION_DATE}</prop>
+		
+                <!-- Allows a transaction to be made/adjusted with a future date -->
+		<prop key="ALLOW_FUTURE_DATE_ACCOUNTING">${ALLOW_FUTURE_DATE_ACCOUNTING}</prop>
+                
+                <!-- Allows an active user to see all inventory locations regardless of scheduling location access -->
+		<prop key="ALLOW_USER_ALL_INVENTORY_LOCATIONS">${ALLOW_USER_ALL_INVENTORY_LOCATIONS}</prop>
+                
+                <!-- Determines whether rescheduling is shown -->
+                <prop key="SHOW_RESCHEDULING_MENU_ITEM">${SHOW_RESCHEDULING_MENU_ITEM}</prop>
+                
+                <!-- Required a health card # before generating an accounting transaction -->
+                <prop key="REQUIRE_HEALTH_CARD_NUMBER_FOR_ACCOUNTING_TRANSACTIONS">${REQUIRE_HEALTH_CARD_NUMBER_FOR_ACCOUNTING_TRANSACTIONS}</prop>
+                
+                <!-- Only show users that are prescribers as options when assigning a recall -->
+                <prop key="ASSIGN_RECALLS_TO_ONLY_PRESCRIBER">${ASSIGN_RECALLS_TO_ONLY_PRESCRIBER}</prop>
+                                
+                <!-- Show order id column on AidOrderBrowserPanel -->
+                <prop key="SHOW_ORDER_ID_ON_AID_ORDER_BROWSER">${SHOW_ORDER_ID_ON_AID_ORDER_BROWSER}</prop>
+                
+                <!-- Show clients health card number column on AidOrderBrowserPanel -->
+                <prop key="SHOW_CLIENT_HEALTH_CARD_NUMBER_ON_AID_ORDER_BROWSER">${SHOW_CLIENT_HEALTH_CARD_NUMBER_ON_AID_ORDER_BROWSER}</prop>
+                
+                <!-- Show catalog number column on ProductServieTreePanel -->
+                <prop key="SHOW_CATALOG_NUMBER_ON_PRODUCT_SERVICE_TREE">${SHOW_CATALOG_NUMBER_ON_PRODUCT_SERVICE_TREE}</prop>
+                
+                <!-- Set default do not mail value when creating a client -->
+                <prop key="CREATE_CLIENT_DO_NOT_MAIL_DEFAULT">${CREATE_CLIENT_DO_NOT_MAIL_DEFAULT}</prop>
+                
+                <!-- Set default do not email value when creating a client -->
+                <prop key="CREATE_CLIENT_DO_NOT_EMAIL_DEFAULT">${CREATE_CLIENT_DO_NOT_EMAIL_DEFAULT}</prop>
+                
+                <!-- Set default do not text value when creating a client -->
+                <prop key="CREATE_CLIENT_DO_NOT_TEXT_DEFAULT">${CREATE_CLIENT_DO_NOT_TEXT_DEFAULT}</prop>
+                
+                <!-- Set default do not send commercial messages value when creating a client -->
+                <prop key="CREATE_CLIENT_DO_NOT_SEND_COMMERCIAL_MESSAGES_DEFAULT">${CREATE_CLIENT_DO_NOT_SEND_COMMERCIAL_MESSAGES_DEFAULT}</prop>
+                
+                <!-- Set maximum size for individual uploaded documents -->
+                <prop key="MAXIMUM_UPLOADED_DOCUMENT_FILE_SIZE">${MAXIMUM_UPLOADED_DOCUMENT_FILE_SIZE}</prop>
+                
+                <!-- Enable/disable client photos -->
+                <prop key="ENABLE_CLIENT_PHOTO">${ENABLE_CLIENT_PHOTO}</prop>
+                
+                <!-- Set category for documents to automatically archive under -->
+                <prop key="AUTO_ARCHIVE_DOCUMENT_CATEGORY_ID">${AUTO_ARCHIVE_DOCUMENT_CATEGORY_ID}</prop>
+                
+                <!-- Enable EDI messaging integration -->
+                <prop key="EDI_MESSAGING_INTEGRATION">${EDI_MESSAGING_INTEGRATION}</prop>
+                
+		<!-- Enables/disables location-restricted marketing campaigns -->
+                <prop key="MARKETING_PANEL_CLASS">${MARKETING_PANEL_CLASS}</prop>
+                
+                <!-- Enables/disables filtering orders by vendor status -->
+                <prop key="ENABLE_FILTERING_ORDERS_BY_VENDOR_STATUS">${ENABLE_FILTERING_ORDERS_BY_VENDOR_STATUS}</prop>
+
+                <!-- Determine if all Noah audiograms should initially show a warning icon when they are sent to Blueprint -->
+                <prop key="SHOW_WARNING_ON_ALL_NOAH_AUDIOGRAMS">${SHOW_WARNING_ON_ALL_NOAH_AUDIOGRAMS}</prop>                
+                                
+                <!-- Determine if POS payments should be shown on the Enter bank deposits panel -->
+                <prop key="SHOW_POS_PAYMENTS_ON_BANK_DEPOSITS_PANEL">${SHOW_POS_PAYMENTS_ON_BANK_DEPOSITS_PANEL}</prop>
+                
+                <!-- Enable the Third Party Receivables Menu (by default, only for Canadian clinics) -->
+                <prop key="ENABLE_THIRD_PARTY_RECEIVABLES_MENU">${ENABLE_THIRD_PARTY_RECEIVABLES_MENU}</prop>
+                
+                <!-- Determines if uploaded patient documents should have a blank name (YES), or use their local document name (NO) -->
+                <prop key="PATIENT_DOCUMENT_UPLOAD_TITLES_BLANK">${PATIENT_DOCUMENT_UPLOAD_TITLES_BLANK}</prop>
+                
+		<!-- Enables/disables expense account selection when creating misc credits -->
+                <prop key="ENABLE_MISC_CREDIT_EXPENSE_ACCOUNTS">${ENABLE_MISC_CREDIT_EXPENSE_ACCOUNTS}</prop>
+                
+                <!-- Determine if the postal code fields should be required -->
+                <prop key="POSTAL_CODE_REQUIRED">${POSTAL_CODE_REQUIRED}</prop>
+                
+                <!-- Determines whether or not to automatically apply insurer credits on returns -->
+                <prop key="APPLY_INSURER_CREDIT_ON_RETURN">${APPLY_INSURER_CREDIT_ON_RETURN}</prop>
+                
+                <!-- Determines whether or not to enable the Monthly Inventory report panel (BPOMS-4959 / BPOMS-6768) -->
+                <prop key="ENABLE_MONTHLY_INVENTORY_REPORT">${ENABLE_MONTHLY_INVENTORY_REPORT}</prop>
+                
+                <!-- Determines if discount by percentage is allowed on sales (BPOMS-9741)  -->
+                <prop key="ENABLE_DISCOUNT_BY_PERCENTAGE">${ENABLE_DISCOUNT_BY_PERCENTAGE}</prop>
+
+                <!-- Interactive SMS classes and settings  -->
+                <prop key="SEARCH_FOR_SMS_NUMBER_DIALOG_CLASS">${SEARCH_FOR_SMS_NUMBER_DIALOG_CLASS}</prop>
+                <prop key="SEARCH_FOR_SMS_NUMBER_COUNTRY_CODE">${SEARCH_FOR_SMS_NUMBER_COUNTRY_CODE}</prop>
+                <prop key="PROVISION_NEW_HOSTED_NUMBER_DIALOG_CLASS">${PROVISION_NEW_HOSTED_NUMBER_DIALOG_CLASS}</prop>
+                <prop key="EDIT_LOCATION_SMS_SENDING_NUMBER_DIALOG_CLASS">${EDIT_LOCATION_SMS_SENDING_NUMBER_DIALOG_CLASS}</prop>
+                
+                <!-- Hide 'Messaging' toolbar icon for countries/locales where interactive SMS is not supported (BPOMS-11166)  -->
+                <prop key="DISPLAY_MESSAGING_TOOLBAR_ICON">${DISPLAY_MESSAGING_TOOLBAR_ICON}</prop>
+
+                <!-- Determine if users should be able to access clients from ordinarily non-accessible locations using advanced search methods -->
+		        <prop key="FIND_NON_ACCESSIBLE_CLIENTS_WITH_ADVANCED_SEARCH">${FIND_NON_ACCESSIBLE_CLIENTS_WITH_ADVANCED_SEARCH}</prop>
+                
+                <!-- Properties for custom panel/table model classes -->
+                <prop key="CREATE_CLIENT_PANEL_CLASS">${CREATE_CLIENT_PANEL_CLASS}</prop>
+                <prop key="CLIENT_ADDRESS_PANEL_CLASS">${CLIENT_ADDRESS_PANEL_CLASS}</prop>
+                <prop key="ADDRESS_PANEL_CLASS">${ADDRESS_PANEL_CLASS}</prop>
+                <prop key="SALES_HISTORY_PANEL_CLASS">${SALES_HISTORY_PANEL_CLASS}</prop>
+                <prop key="SALES_HISTORY_TABLE_MODEL_CLASS">${SALES_HISTORY_TABLE_MODEL_CLASS}</prop>
+                <prop key="CLIENT_DOCUMENT_PANEL_CLASS">${CLIENT_DOCUMENT_PANEL_CLASS}</prop>                         
+                <prop key="RETURN_ITEMS_PANEL_CLASS">${RETURN_ITEMS_PANEL_CLASS}</prop>                                       
+                <prop key="REFERRER_DIALOG_CLASS">${REFERRER_DIALOG_CLASS}</prop>                 
+                <prop key="REFERRER_PROCESS_PANEL_CLASS">${REFERRER_PROCESS_PANEL_CLASS}</prop>
+                <prop key="CLIENT_DOCUMENT_PANEL_CLASS">${CLIENT_DOCUMENT_PANEL_CLASS}</prop>
+                <prop key="RECEIVE_DEPOSIT_DIALOG_CLASS">${RECEIVE_DEPOSIT_DIALOG_CLASS}</prop>
+                <prop key="RECEIVE_PAYMENT_DIALOG_CLASS">${RECEIVE_PAYMENT_DIALOG_CLASS}</prop>
+                <prop key="CLIENT_UNPAID_INVOICES_DIALOG_CLASS">${CLIENT_UNPAID_INVOICES_DIALOG_CLASS}</prop>       
+                <prop key="CREATE_SALES_RECEIPT_DIALOG_CLASS">${CREATE_SALES_RECEIPT_DIALOG_CLASS}</prop>
+                <prop key="ORDER_SUMMARY_FACTORY_CLASS">${ORDER_SUMMARY_FACTORY_CLASS}</prop>            
+                <prop key="ORDER_SUMMARY_FACTORY_WORD_CLASS">${ORDER_SUMMARY_FACTORY_WORD_CLASS}</prop>
+                <prop key="PAYMENT_CREDIT_FACTORY_WORD_CLASS">${PAYMENT_CREDIT_FACTORY_WORD_CLASS}</prop>
+                <prop key="ALTERNATE_CONTACT_DETAILS_NAME_PANEL_CLASS">${ALTERNATE_CONTACT_DETAILS_NAME_PANEL_CLASS}</prop>
+                <prop key="CLIENT_ORDER_MAIL_MERGE_DATA_SOURCE_CLASS">${CLIENT_ORDER_MAIL_MERGE_DATA_SOURCE_CLASS}</prop>
+                <prop key="PRODUCT_SERVICE_TREE_PANEL_CLASS">${PRODUCT_SERVICE_TREE_PANEL_CLASS}</prop>
+                <prop key="MERGED_DOCUMENT_VIEWER_PANEL_CLASS">${MERGED_DOCUMENT_VIEWER_PANEL_CLASS}</prop>
+                <prop key="ORDER_COST_ALLOCATION_PANEL_CLASS">${ORDER_COST_ALLOCATION_PANEL_CLASS}</prop>
+                <prop key="QUICK_ADD_DETAILS_PANEL_CLASS">${QUICK_ADD_DETAILS_PANEL_CLASS}</prop>
+                <prop key="ISSUE_REFUND_DIALOG_CLASS">${ISSUE_REFUND_DIALOG_CLASS}</prop>
+                <prop key="ISSUE_PAYMENT_REFUND_DIALOG_CLASS">${ISSUE_PAYMENT_REFUND_DIALOG_CLASS}</prop>
+
+                <prop key="SIGNER_CONNECTION_PORT">${SIGNER_CONNECTION_PORT}</prop>
+                <prop key="SIGNER_CONNECTION_TABLET">${SIGNER_CONNECTION_TABLET}</prop>
+                
+                <prop key="NOTIFICATION_LISTENER_RECEIVE_TIMEOUT">${NOTIFICATION_LISTENER_RECEIVE_TIMEOUT}</prop> 
+
+                <!-- Properties for reading QR codes and Barcodes -->
+                <prop key="OTICON_SERIAL_NUMBER_LENGTH">${OTICON_SERIAL_NUMBER_LENGTH}</prop>
+                <prop key="OTICON_QR_CODE_LENGTH">${OTICON_QR_CODE_LENGTH}</prop>
+                <prop key="OTICON_QR_START_CHARACTERS_LENGTH_TO_IGNORE">${OTICON_QR_START_CHARACTERS_LENGTH_TO_IGNORE}</prop>
+                <prop key="OTICON_BARCODE_START_CHARACTERS_LENGTH_TO_IGNORE">${OTICON_BARCODE_START_CHARACTERS_LENGTH_TO_IGNORE}</prop>
+                <prop key="RESOUND_SERIAL_NUMBER_LENGTH">${RESOUND_SERIAL_NUMBER_LENGTH}</prop>
+                <prop key="RESOUND_QR_CODE_LENGTH">${RESOUND_QR_CODE_LENGTH}</prop>
+                <prop key="RESOUND_QR_START_CHARACTERS_LENGTH_TO_IGNORE">${RESOUND_QR_START_CHARACTERS_LENGTH_TO_IGNORE}</prop>
+                <prop key="RESOUND_BARCODE_START_CHARACTERS_TO_IGNORE">${RESOUND_BARCODE_START_CHARACTERS_TO_IGNORE}</prop>
+                <prop key="PHONAK_BARCODE_START_CHARACTERS_TO_IGNORE">${PHONAK_BARCODE_START_CHARACTERS_TO_IGNORE}</prop>
+                
+                <!-- Email and fax related settings -->
+                <!-- TODO: Get this from the country table in the database -->
+                <prop key="TELEPHONE_COUNTRY_CODE">${TELEPHONE_COUNTRY_CODE}</prop>  
+                <prop key="DEFAULT_MESSAGE_SIGNATURE_TEXT">${DEFAULT_MESSAGE_SIGNATURE_TEXT}</prop>
+                
+                <!-- Password security settings -->
+                <prop key="PASSWORD_MIN_LENGTH">${PASSWORD_MIN_LENGTH}</prop>  
+                <prop key="PASSWORD_MAX_LENGTH">${PASSWORD_MAX_LENGTH}</prop>
+                
+                <prop key="RETRIEVE_CLIENT_PHOTO_DELAY">${RETRIEVE_CLIENT_PHOTO_DELAY}</prop>
+                
+                <prop key="CARECREDIT_PARTNER_CODE">${CARECREDIT_PARTNER_CODE}</prop>
+                <prop key="CARECREDIT_CLIENT_ID">${CARECREDIT_CLIENT_ID}</prop>
+                <prop key="CARECREDIT_CLIENT_SECRET">${CARECREDIT_CLIENT_SECRET}</prop>
+              
+                <prop key="INTERACTIVE_SMS_TESTING_VERIFICATION_USE_CASE">${INTERACTIVE_SMS_TESTING_VERIFICATION_USE_CASE}</prop>
+                <prop key="DEFAULT_INTERACTIVE_SMS_PROVIDER">${DEFAULT_INTERACTIVE_SMS_PROVIDER}</prop>
+                <prop key="DEFAULT_MESSAGING_PROFILE_WHITELISTED_COUNTRY_CODES">${DEFAULT_MESSAGING_PROFILE_WHITELISTED_COUNTRY_CODES}</prop>
+                                                                    
+                <!-- Oticon MAP API for authenticating the user account -->
+                <prop key="OTICON_MAP_API_AUTH_URL">${OTICON_MAP_API_AUTH_URL}</prop>
+		<prop key="OTICON_MAP_API_SKEY_TOKEN">${OTICON_MAP_API_SKEY_TOKEN}</prop>              
+                
+                <prop key="REQUIRE_SEND_COMMERCIAL_MESSAGE_OPT_IN">${REQUIRE_SEND_COMMERCIAL_MESSAGE_OPT_IN}</prop>
+                <prop key="REQUIRE_DISCOUNT_REASON">${REQUIRE_DISCOUNT_REASON}</prop>
+                <prop key="SHOW_INSURER_ACCOUNT_NUMBERS">${SHOW_INSURER_ACCOUNT_NUMBERS}</prop>
+                <prop key="ENABLE_ADDITIONAL_AUDIOGRAM_MASKING_STIMULUS_ROWS">${ENABLE_ADDITIONAL_AUDIOGRAM_MASKING_STIMULUS_ROWS}</prop>               
+                <prop key="AUDIOGRAM_GRAPHER_CLASS">${AUDIOGRAM_GRAPHER_CLASS}</prop>                
+                <prop key="MAX_DISCOUNT_PERCENTAGE">${MAX_DISCOUNT_PERCENTAGE}</prop>
+                <prop key="CLICK_TO_CALL_CREATE_JOURNAL_ENTRY">${CLICK_TO_CALL_CREATE_JOURNAL_ENTRY}</prop>
+                <prop key="IME_OFF_FOR_NUMERIC_FIELDS">${IME_OFF_FOR_NUMERIC_FIELDS}</prop>
+                <prop key="SHOW_WEB_APP_COMPONENTS">${SHOW_WEB_APP_COMPONENTS}</prop>
+            </props>
+        </property>
+    </bean>
+
+    <!-- Main scheduling panel bean -->
+    <bean id="schedulingMainPanel" class="${SCHEDULING_MAIN_PANEL_CLASS}" scope="prototype">
+	<property name="arrivalNotificationMode" value="${ARRIVAL_NOTIFICATION_MODE}"/>
+        <property name="defaultEventTitleTemplate" value="${DEFAULT_EVENT_TITLE_TEMPLATE}"/>
+        <property name="defaultEventTextTemplate" value="${DEFAULT_EVENT_TEXT_TEMPLATE}"/>
+	<property name="patientSelectorHelperType" value="${PATIENT_SELECTOR_HELPER_TYPE}"/><!-- The possible values: clientID, birthdate, referenceNo, phoneNumber, and address. -->
+	<property name="patientNoteToolTipInitialDelay" value="${PATIENT_NOTE_TOOLTIP_INITIAL_DELAY}"/><!-- ToolTip initial delay in milliseconds (-1 disables the ToolTip). -->
+        <property name="unavailableColorAlphaLevel" value="${UNAVAILABLE_COLOR_ALPHA_LEVEL}"/>
+        <property name="show3pPresentFlag" value="${SHOW_3P_PRESENT_FLAG}"/>
+        <property name="showSalesOpportunityFlag" value="${SHOW_SALES_OPPORTUNITY_FLAG}"/>
+        <property name="showUnaidableFlag" value="${SHOW_UNAIDABLE_FLAG}"/>
+        <property name="showInClinicPatients" value="${SHOW_IN_CLINIC_PATIENTS}"/>
+        <property name="notifyOnEventStatusChange" value="${NOTIFY_ON_EVENT_STATUS_CHANGE}"/>
+        <property name="eventReferralSourceRequiredForSalesOpportunity" value="${EVENT_REFERRAL_SOURCE_REQUIRED_FOR_SALES_OPPORTUNITY}"/>
+        <property name="salesOpportunityFlagEditable" value="${SALES_OPPORTUNITY_FLAG_EDITABLE:#{TRUE}}"/>
+        <property name="inClinicWaitTimeWarningInterval" value="${IN_CLINIC_WAIT_TIME_WARNING_INTERVAL}"/>        
+        <property name="eventNotificationResponses" value="${EVENT_NOTIFICATION_RESPONSES}"/>
+        <property name="dayOfWeekAnchorForWorkWeek" value="${DAY_OF_WEEK_ANCHOR_FOR_WORK_WEEK}"/>
+        <property name="daysInWorkWeek" value="${DAYS_IN_WORK_WEEK}"/>
+	<property name="schedulingReferrerDialogClass" value="${SCHEDULING_REFERRER_DIALOG_CLASS}"/>
+        <property name="reducedMinuteSegmentHeight" value="${REDUCED_MINUTE_SEGMENT_HEIGHT}"/>
+        <property name="recentInteractionsInDays" value="${RECENT_INTERACTIONS_IN_DAYS}"/>
+        <property name="patientSearchStyle" value="${PATIENT_SEARCH_STYLE}"/>
+        <property name="automaticallyPopulateReferralSourceInformation" value="${AUTOMATICALLY_POPULATE_REFERRAL_SOURCE_INFORMATION}"/>
+        <property name="promtWhenOverwritingReferralSourceInformation" value="${PROMPT_WHEN_OVERWRITING_REFERRAL_SOURCE_INFORMATION}"/>
+        <property name="schedulingEventDetailsPanelClass" value="${SCHEDULING_EVENT_DETAILS_PANEL_CLASS}"/>
+        <property name="createOrUpdateEventDialogClass" value="${CREATE_OR_UPDATE_EVENT_DIALOG_CLASS}"/>
+        <property name="retrieveClientPhotoDelay" value="${RETRIEVE_CLIENT_PHOTO_DELAY}"/>
+        <property name="enableClientPhoto" value="${ENABLE_CLIENT_PHOTO}"/>
+        <property name="schedulingControllerClass" value="${SCHEDULING_CONTROLLER_CLASS}"/>
+        <property name="enableAvailabilityColor" value="${ENABLE_AVAILABILITY_COLOR}"/>
+	<property name="hoursToLockJournalEntry" value="${HOURS_TO_LOCK_JOURNAL}"/>
+	<property name="enableLinkingJournalToEvent" value="${ENABLE_LINKING_JOURNAL_TO_EVENT}"/>
+        <property name="enableQuickPastePinnedEvent" value="${ENABLE_QUICK_PASTE_PINNED_EVENT}"/>
+        <property name="createClientDoNotMailDefault" value="${CREATE_CLIENT_DO_NOT_MAIL_DEFAULT}"/>
+	<property name="createClientDoNotEmailDefault" value="${CREATE_CLIENT_DO_NOT_EMAIL_DEFAULT}"/>
+	<property name="createClientDoNotTextDefault" value="${CREATE_CLIENT_DO_NOT_TEXT_DEFAULT}"/>
+	<property name="createClientDoNotSendCommercialMessagesDefault" value="${CREATE_CLIENT_DO_NOT_SEND_COMMERCIAL_MESSAGES_DEFAULT}"/>
+        <property name="quickAddDetailsPanelClass" value="${QUICK_ADD_DETAILS_PANEL_CLASS}"/>   
+        <property name="imeOffForNumericFields" value="${IME_OFF_FOR_NUMERIC_FIELDS}"/>
+    </bean>     
+    
+    <bean id="serverURL" class="java.net.URL">
+        <constructor-arg value="${SERVICE_URL}"/>
+    </bean>    
+    
+    <!-- OMSController bean -->
+    <bean id="omsController" class="com.blueprint.oms.controller.OMSControllerImpl" scope="singleton">
+        <constructor-arg ref="serverURL"/>
+    </bean>    
+    
+    <!-- GUIController bean, autowire enabled to find imported amqConnectionFactory -->
+    <bean id="guiController" class="${GUICONTROLLER_CLASS}" autowire="byName">
+        <property name="reportDisplayEngine">
+            <bean class="com.blueprint.oms.gui.reporting.viewer.jasper.OMSJRDisplayEngine" scope="prototype" />
+        </property>
+        <property name="omsController" ref="omsController"/>
+        <property name="newAidOrderFormFieldGenerator" ref="newAidOrderFormFieldGenerator"/>
+        <property name="clientSummaryFieldGenerator" ref="clientSummaryFieldGenerator"/>
+        <property name="audiologicalFieldGenerator" ref="audiologicalFieldGenerator"/>
+        <property name="returnAidOrderFormFieldGenerator" ref="returnAidOrderFormFieldGenerator"/>
+    </bean>
+
+    <bean id="addressFormatter" class="${ADDRESS_FORMATTER_CLASS}"/>
+    
+</beans>

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Application context for the remote OMSService client -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:amq="http://activemq.apache.org/schema/core"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+
+    <!-- Not used.  Only as an indicator to the client application that Noah Integration is enabled  -->
+    <bean id="noahJMSTemplate" class="org.springframework.jms.core.JmsTemplate" lazy-init="true">        
+    </bean> 
+
+</beans>

@@ -1,0 +1,2 @@
+Premain-Class: com.blueprint.relay.Agent
+Can-Redefine-Classes: true
