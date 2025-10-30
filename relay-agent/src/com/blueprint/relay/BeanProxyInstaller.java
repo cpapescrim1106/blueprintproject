@@ -7,6 +7,7 @@ import java.util.Arrays;
 final class BeanProxyInstaller {
   private static final String TARGET_BEAN_NAME = "omsController";
   private static final String SETTER_NAME = "setOmsController";
+  private static final int MAX_RESOLVE_ATTEMPTS = 60;
 
   private BeanProxyInstaller() {
   }
@@ -18,9 +19,9 @@ final class BeanProxyInstaller {
     }
 
     try {
-      Object original = invokeGetBean(context, TARGET_BEAN_NAME);
+      Object original = resolveBeanWithRetry(context, TARGET_BEAN_NAME);
       if (original == null) {
-        Agent.log("Bean '%s' not found in context", TARGET_BEAN_NAME);
+        Agent.log("Bean '%s' not found in context after retries", TARGET_BEAN_NAME);
         return;
       }
 
@@ -41,9 +42,29 @@ final class BeanProxyInstaller {
     }
   }
 
-  private static Object invokeGetBean(Object context, String name) throws ReflectiveOperationException {
+  private static Object resolveBeanWithRetry(Object context, String name)
+      throws ReflectiveOperationException {
     Method getBean = context.getClass().getMethod("getBean", String.class);
-    return getBean.invoke(context, name);
+    for (int attempt = 1; attempt <= MAX_RESOLVE_ATTEMPTS; attempt++) {
+      try {
+        Agent.log("Attempt %d to resolve bean '%s'", attempt, name);
+        Object bean = getBean.invoke(context, name);
+        Agent.log("Resolved bean '%s' on attempt %d (%s)", name, attempt, bean.getClass().getName());
+        return bean;
+      } catch (InvocationTargetException ex) {
+        Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
+        if (!shouldRetry(cause, attempt)) {
+          Agent.log("Giving up on bean '%s' due to %s: %s",
+              name,
+              cause.getClass().getName(),
+              cause.getMessage());
+          return null;
+        }
+        sleepQuietly(500L);
+      }
+    }
+    Agent.log("Timed out waiting for bean '%s' after %d attempts", name, MAX_RESOLVE_ATTEMPTS);
+    return null;
   }
 
   private static boolean replaceSingleton(Object context, Object proxy) {
@@ -91,9 +112,8 @@ final class BeanProxyInstaller {
         try {
           bean = getBean.invoke(context, name);
         } catch (InvocationTargetException ex) {
-          // Bean creation might fail or be lazy; skip with a log entry.
           Throwable cause = ex.getCause() != null ? ex.getCause() : ex;
-          Agent.log("Skipping bean '%s': %s", name, cause.getMessage());
+          Agent.log("Skipping bean '%s': %s (%s)", name, cause.getMessage(), cause.getClass().getName());
           continue;
         }
         if (bean == null) {
@@ -113,6 +133,23 @@ final class BeanProxyInstaller {
     } catch (ReflectiveOperationException ex) {
       Agent.log("Unable to enumerate beans for proxy injection: %s", ex.getMessage());
     }
+  }
+
+  private static boolean shouldRetry(Throwable cause, int attempt) {
+    if (cause == null) {
+      return attempt < MAX_RESOLVE_ATTEMPTS;
+    }
+    String type = cause.getClass().getName();
+    if (type.contains("NoSuchBeanDefinitionException")
+        || type.contains("BeanCreationException")
+        || type.contains("BeanCurrentlyInCreationException")
+        || type.contains("BeanDefinitionStoreException")
+        || type.contains("UnsatisfiedDependencyException")
+        || type.contains("IllegalStateException")) {
+      Agent.log("Bean resolution attempt %d failed: %s (%s)", attempt, cause.getMessage(), type);
+      return attempt < MAX_RESOLVE_ATTEMPTS;
+    }
+    return false;
   }
 
   private static Method findSetter(Class<?> type) {
@@ -137,21 +174,27 @@ final class BeanProxyInstaller {
         method.setAccessible(true);
         return method;
       } catch (NoSuchMethodException ignored) {
-        // Continue walking the hierarchy.
         current = current.getSuperclass();
       }
     }
-    // Try interface methods as a last resort.
     for (Class<?> iface : type.getInterfaces()) {
       try {
         Method method = iface.getMethod(name, parameterTypes);
         method.setAccessible(true);
         return method;
       } catch (NoSuchMethodException ignored) {
-        // Keep searching.
+        // keep searching
       }
     }
     Agent.log("Method '%s' not found on %s (params %s)", name, type.getName(), Arrays.toString(parameterTypes));
     return null;
+  }
+
+  private static void sleepQuietly(long millis) {
+    try {
+      Thread.sleep(millis);
+    } catch (InterruptedException interrupted) {
+      Thread.currentThread().interrupt();
+    }
   }
 }

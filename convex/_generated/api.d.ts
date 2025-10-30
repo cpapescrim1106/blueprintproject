@@ -9,6 +9,7 @@
  */
 
 import type * as ingest from "../ingest.js";
+import type * as patientScore from "../patientScore.js";
 import type * as reports from "../reports.js";
 
 import type {
@@ -27,6 +28,7 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   ingest: typeof ingest;
+  patientScore: typeof patientScore;
   reports: typeof reports;
 }>;
 declare const fullApiWithMounts: typeof fullApi;

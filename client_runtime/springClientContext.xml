@@ -87,4 +87,12 @@
             </map>
         </constructor-arg>
     </bean -->
+    <!-- Override code version checks so the client doesn't exit in offline mode. -->
+    <bean id="codeVersion" class="java.lang.String">
+        <constructor-arg value="4.8.1"/>
+    </bean>
+    <bean id="bplinkCodeVersion" class="java.lang.String">
+        <constructor-arg value="4.1"/>
+    </bean>
+
 </beans>

@@ -27,7 +27,8 @@ pushd "$TMP_DIR" >/dev/null
   com/blueprint/oms/gui/springClientContext_base.xml \
   com/blueprint/oms/gui/noah.xml \
   com/blueprint/oms/gui/forms_US.xml \
-  com/blueprint/oms/gui/forms_generic.xml
+  com/blueprint/oms/gui/forms_generic.xml \
+  com/blueprint/oms/gui/forms_US_hcfa.xml
 popd >/dev/null
 
 mkdir -p "$RUNTIME_DIR/shared"
@@ -36,6 +37,8 @@ cp "$TMP_DIR/com/blueprint/oms/gui/springClientContext_base.xml" "$RUNTIME_DIR/s
 cp "$TMP_DIR/com/blueprint/oms/gui/noah.xml" "$RUNTIME_DIR/shared/"
 cp "$TMP_DIR/com/blueprint/oms/gui/forms_US.xml" "$RUNTIME_DIR/shared/"
 cp "$TMP_DIR/com/blueprint/oms/gui/forms_generic.xml" "$RUNTIME_DIR/shared/"
+cp "$TMP_DIR/com/blueprint/oms/gui/forms_US_hcfa.xml" "$RUNTIME_DIR/shared/"
+cp "$ROOT/reference/launch.jnlp" "$RUNTIME_DIR/"
 
 # Copy clinic configuration properties
 cp "$ROOT/reference/clientConfig_base.properties" "$RUNTIME_DIR/"
@@ -56,6 +59,44 @@ cat > "$RUNTIME_DIR/logback.xml" <<'EOF'
   </root>
 </configuration>
 EOF
+
+# Override version beans so the client runs offline without mismatched code checks.
+python3 - "$RUNTIME_DIR" <<'PY'
+from pathlib import Path
+import sys
+import re
+
+runtime_dir = Path(sys.argv[1])
+path = runtime_dir / "springClientContext.xml"
+base_path = runtime_dir / "shared" / "springClientContext_base.xml"
+
+code_version = "4.8.1"
+bp_version = "4.1"
+if base_path.exists():
+    text = base_path.read_text()
+    m = re.search(r'<bean id="codeVersion".*?<constructor-arg value="([^"]+)"', text, re.DOTALL)
+    if m:
+        code_version = m.group(1)
+    m = re.search(r'<bean id="bplinkCodeVersion".*?<constructor-arg value="([^"]+)"', text, re.DOTALL)
+    if m:
+        bp_version = m.group(1)
+
+snippet = """    <!-- Override code version checks so the client doesn't exit in offline mode. -->
+    <bean id="codeVersion" class="java.lang.String">
+        <constructor-arg value="%s"/>
+    </bean>
+    <bean id="bplinkCodeVersion" class="java.lang.String">
+        <constructor-arg value="%s"/>
+    </bean>
+""" % (code_version, bp_version)
+
+if path.exists():
+    text = path.read_text()
+    if snippet not in text:
+        updated = text.replace("</beans>", snippet + "\n</beans>")
+        if updated != text:
+            path.write_text(updated)
+PY
 
 rm -rf "$TMP_DIR"
 

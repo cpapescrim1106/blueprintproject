@@ -1,0 +1,648 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Application context for the remote OMSService client -->
+<beans xmlns="http://www.springframework.org/schema/beans"
+  xmlns:amq="http://activemq.apache.org/schema/core"
+  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.0.xsd
+  http://activemq.apache.org/schema/core http://activemq.apache.org/schema/core/activemq-core.xsd">
+      
+    <!-- US HCFA specific forms -->
+    <bean id="hcfaFieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.us.HCFAFieldGenerator" scope="singleton"/>
+    
+    <bean id="hcfa0212FieldGenerator" class="com.blueprint.oms.reporting.jasper.custom.us.HCFA0212FieldGenerator" scope="singleton"/>
+    
+    <bean id="hcfa0212PdfFieldGenerator" class="com.blueprint.reporting.pdf.generator.us.HCFA0212PDFFieldGenerator" scope="singleton"/>
+    
+    <bean id="hcfaContextValidator" class="com.blueprint.oms.common.clientreporting.context.us.HCFAContextValidator" scope="singleton"/>
+    
+    <bean id="HCFA1500" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="-1"/>
+        <property name="description" value="HCFA 1500"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/us/HCFA_1500.jasper"/>
+        <property name="fieldGenerator" ref="hcfaFieldGenerator"/>
+        <property name="backgroundFilename" value="com/blueprint/oms/reporting/jasper/reports/us/images/1500.gif"/>        
+        <property name="isPrintBackground" value="false"/>
+    </bean> 
+
+    <bean id="HCFA1500_02_12" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="-1"/>
+        <property name="description" value="HCFA 1500 02/12"/>
+        <property name="filename" value="com/blueprint/oms/reporting/jasper/reports/us/HCFA_1500_02_12.jasper"/>
+        <property name="fieldGenerator" ref="hcfa0212FieldGenerator"/>
+        <property name="contextValidator" ref="hcfaContextValidator"/>
+        <property name="backgroundFilename" value="com/blueprint/oms/reporting/jasper/reports/us/images/HCFA_1500_02_12.png"/>        
+        <property name="isPrintBackground" value="false"/>
+        <property name="isUseMultiParameterPromptingDialog" value="true"/>
+    </bean>    
+    
+    <bean id="HCFA1500_02_12_PDF" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="24"/>
+        <property name="description" value="HCFA 1500 02/12 (PDF)"/>
+        <property name="filename" value="US/CMS1500_02_12.pdf"/>
+        <property name="contextValidator" ref="hcfaContextValidator"/>
+        <property name="dateFormat" value="MM-dd-yyyy"/>
+        
+        <property name="fieldGenerator">
+          <bean class="com.blueprint.oms.common.clientreporting.CompositeFieldGenerator">
+            <property name="fieldGenerators">
+              <list>
+                <ref bean="hcfa0212FieldGenerator"/>
+                <ref bean="hcfa0212PdfFieldGenerator"/>
+              </list>
+            </property>         
+          </bean>
+        </property>
+        
+        <property name="generatedFieldMapping">
+          <map>
+            <entry key="insurerDetails" value="2"/>
+            <entry key="field01_medicare" value="3::Yes"/>
+            <entry key="field01_medicaid" value="4::Yes"/>
+            <entry key="field01_tricare" value="5::Yes"/>
+            <entry key="field01_champva" value="6::Yes"/>
+            <entry key="field01_group_health_plan" value="7::Yes"/>
+            <entry key="field01_feca_blk_lung" value="8::Yes"/>
+            <entry key="field01_other" value="9::Yes"/>
+            <entry key="field01a" value="10"/>
+            <entry key="field02" value="11"/>
+            <entry key="field03_DOB_month" value="12"/>
+            <entry key="field03_DOB_day" value="13"/>
+            <entry key="field03_DOB_year" value="14"/>
+            <entry key="field03_sex_M" value="15::Yes"/>
+            <entry key="field03_sex_F" value="16::Yes"/>
+            <entry key="field04" value="17"/>
+            <entry key="field05_street" value="18"/>
+            <entry key="field05_city" value="19"/>
+            <entry key="field05_state" value="20"/>
+            <entry key="field05_zip" value="21"/>
+            <entry key="field05_area_code" value="22"/>
+            <entry key="field05_phone" value="23"/>
+            <entry key="field06_self" value="24::Yes"/>
+            <entry key="field06_spouse" value="25::Yes"/>
+            <entry key="field06_child" value="26::Yes"/>
+            <entry key="field06_other" value="27::Yes"/>
+            <entry key="field07_street" value="28"/>
+            <entry key="field07_city" value="29"/>
+            <entry key="field07_state" value="30"/>
+            <entry key="field07_zip" value="31"/>
+            <entry key="field07_area_code" value="32"/>
+            <entry key="field07_phone" value="33"/>
+            <entry key="field08" value="txt8"/>
+            <entry key="field09" value="40"/>
+            <entry key="field09a" value="41"/>
+            <entry key="field09b" value="42"/>
+            <entry key="field09c" value="47"/>
+            <entry key="field09d" value="48"/>
+            <entry key="field10a_yes" value="49::Yes"/>            
+            <entry key="field10a_no" value="50::Yes"/>
+            <entry key="field10b_yes" value="51::Yes"/>            
+            <entry key="field10b_no" value="52::Yes"/>
+            <entry key="field10b_place" value="53"/>
+            <entry key="field10c_yes" value="54::Yes"/>            
+            <entry key="field10c_no" value="55::Yes"/>
+            <entry key="field10d" value="56_1"/>
+            <entry key="field11" value="56_2"/>
+            <entry key="field11a_DOB_month" value="57"/>
+            <entry key="field11a_DOB_day" value="58"/>
+            <entry key="field11a_DOB_year" value="59"/>
+            <entry key="field11_sex_M" value="60::Yes"/>
+            <entry key="field11_sex_F" value="61::Yes"/>
+            <entry key="field11b" value="62"/>
+            <entry key="field11c" value="63"/>
+            <entry key="field11d_yes" value="64::Yes"/>
+            <entry key="field11d_no" value="65::Yes"/>
+            <entry key="field12_signature" value="66"/>
+            <entry key="field12_date" value="67"/>
+            <entry key="field13_signature" value="68"/>           
+            <entry key="field14_month" value="69"/>
+            <entry key="field14_day" value="70"/>
+            <entry key="field14_year" value="71"/>
+            <entry key="field14_qual" value="14_A"/>           
+            <entry key="field15_qual" value="15_A"/>            
+            <entry key="field15_month" value="72"/>            
+            <entry key="field15_day" value="73"/>
+            <entry key="field15_year" value="74"/>         
+            <entry key="field16_month_from" value="75"/>
+            <entry key="field16_day_from" value="76"/>
+            <entry key="field16_year_from" value="77"/>
+            <entry key="field16_month_to" value="78"/>
+            <entry key="field16_day_to" value="79"/>
+            <entry key="field16_year_to" value="80"/>
+            <entry key="field17_qual" value="17_A"/>
+            <entry key="field17_name" value="81"/>
+            <entry key="field17a_qual" value="82"/>              
+            <entry key="field17a_ID" value="83"/> 
+            <entry key="field17b" value="84"/>
+            <entry key="field18_month_from" value="85"/>
+            <entry key="field18_day_from" value="86"/>
+            <entry key="field18_year_from" value="87"/>
+            <entry key="field18_month_to" value="88"/>
+            <entry key="field18_day_to" value="89"/>
+            <entry key="field18_year_to" value="90"/>
+            <entry key="field19" value="91"/>
+            <entry key="field20_yes" value="92::Yes"/>            
+            <entry key="field20_no" value="93::Yes"/>
+            <entry key="field20_charges" value="94"/>
+            <entry key="field21_icd_ind" value="21_A"/>
+            <entry key="field21_a" value="95"/>
+            <entry key="field21_b" value="96"/>
+            <entry key="field21_c" value="97"/>
+            <entry key="field21_d" value="98"/>
+            <entry key="field21_e" value="99"/>
+            <entry key="field21_f" value="100"/>
+            <entry key="field21_g" value="101"/>
+            <entry key="field21_h" value="102"/>
+            <entry key="field21_i" value="103"/>
+            <entry key="field21_j" value="104"/>
+            <entry key="field21_k" value="105"/>
+            <entry key="field21_l" value="106"/>    
+            <entry key="field22_code" value="107"/> 
+            <entry key="field22_ref_no" value="108"/> 
+            <entry key="field23" value="109"/>
+            <entry key="field24_1_note" value="110"/>
+            <entry key="field24_1a_month_from" value="114"/>
+            <entry key="field24_1a_day_from" value="115"/>
+            <entry key="field24_1a_year_from" value="116"/>
+            <entry key="field24_1a_month_to" value="117"/>
+            <entry key="field24_1a_day_to" value="118"/>
+            <entry key="field24_1a_year_to" value="119"/>
+            <entry key="field24_1b" value="120"/>
+            <entry key="field24_1c" value="121"/>
+            <entry key="field24_1d" value="122"/>
+            <entry key="field24_1d_mod_a" value="123"/>
+            <entry key="field24_1d_mod_b" value="124"/>
+            <entry key="field24_1d_mod_c" value="125"/>
+            <entry key="field24_1d_mod_d" value="126"/>
+            <entry key="field24_1e" value="127"/>
+            <entry key="field24_1f_integer" value="128"/>
+            <entry key="field24_1f_decimal" value="129"/>
+            <entry key="field24_1g" value="130"/>
+            <entry key="field24_1h_top" value="111"/>
+            <entry key="field24_1h_bottom" value="131"/>            
+            <entry key="field24_1i" value="112"/>                 
+            <entry key="field24_1j_top" value="113"/>
+            <entry key="field24_1j_bottom" value="132"/>
+            <entry key="field24_2_note" value="133"/>
+            <entry key="field24_2a_month_from" value="137"/>
+            <entry key="field24_2a_day_from" value="138"/>
+            <entry key="field24_2a_year_from" value="139"/>
+            <entry key="field24_2a_month_to" value="140"/>
+            <entry key="field24_2a_day_to" value="141"/>
+            <entry key="field24_2a_year_to" value="142"/>
+            <entry key="field24_2b" value="143"/>
+            <entry key="field24_2c" value="144"/>
+            <entry key="field24_2d" value="145"/>
+            <entry key="field24_2d_mod_a" value="146"/>
+            <entry key="field24_2d_mod_b" value="147"/>
+            <entry key="field24_2d_mod_c" value="148"/>
+            <entry key="field24_2d_mod_d" value="149"/>            
+            <entry key="field24_2e" value="150"/>
+            <entry key="field24_2f_integer" value="151"/>
+            <entry key="field24_2f_decimal" value="152"/>
+            <entry key="field24_2g" value="153"/>
+            <entry key="field24_2h_top" value="134"/>
+            <entry key="field24_2h_bottom" value="154"/>                     
+            <entry key="field24_2i" value="135"/> 
+            <entry key="field24_2j_top" value="136"/>
+            <entry key="field24_2j_bottom" value="155"/>
+            <entry key="field24_3_note" value="156"/>
+            <entry key="field24_3a_month_from" value="160"/>
+            <entry key="field24_3a_day_from" value="161"/>
+            <entry key="field24_3a_year_from" value="162"/>
+            <entry key="field24_3a_month_to" value="163"/>
+            <entry key="field24_3a_day_to" value="164"/>
+            <entry key="field24_3a_year_to" value="165"/>
+            <entry key="field24_3b" value="166"/>
+            <entry key="field24_3c" value="167"/>
+            <entry key="field24_3d" value="168"/>
+            <entry key="field24_3d_mod_a" value="169"/>
+            <entry key="field24_3d_mod_b" value="170"/>
+            <entry key="field24_3d_mod_c" value="171"/>
+            <entry key="field24_3d_mod_d" value="172"/>              
+            <entry key="field24_3e" value="173"/>
+            <entry key="field24_3f_integer" value="174"/>
+            <entry key="field24_3f_decimal" value="175"/>
+            <entry key="field24_3g" value="176"/>
+            <entry key="field24_3h_top" value="157"/>
+            <entry key="field24_3h_bottom" value="177"/>                     
+            <entry key="field24_3i" value="158"/>             
+            <entry key="field24_3j_top" value="159"/>
+            <entry key="field24_3j_bottom" value="178"/>
+            <entry key="field24_4_note" value="179"/>
+            <entry key="field24_4a_month_from" value="183"/>
+            <entry key="field24_4a_day_from" value="184"/>
+            <entry key="field24_4a_year_from" value="185"/>
+            <entry key="field24_4a_month_to" value="186"/>
+            <entry key="field24_4a_day_to" value="187"/>
+            <entry key="field24_4a_year_to" value="188"/>
+            <entry key="field24_4b" value="189"/>
+            <entry key="field24_4c" value="190"/>
+            <entry key="field24_4d" value="191"/>
+            <entry key="field24_4d_mod_a" value="192"/>
+            <entry key="field24_4d_mod_b" value="193"/>
+            <entry key="field24_4d_mod_c" value="194"/>
+            <entry key="field24_4d_mod_d" value="195"/>             
+            <entry key="field24_4e" value="196"/>
+            <entry key="field24_4f_integer" value="197"/>
+            <entry key="field24_4f_decimal" value="198"/>
+            <entry key="field24_4g" value="199"/>
+            <entry key="field24_4h_top" value="180"/>
+            <entry key="field24_4h_bottom" value="200"/>                     
+            <entry key="field24_4i" value="181"/>
+            <entry key="field24_4j_top" value="182"/>
+            <entry key="field24_4j_bottom" value="201"/>
+            <entry key="field24_5_note" value="202"/>
+            <entry key="field24_5a_month_from" value="206"/>
+            <entry key="field24_5a_day_from" value="207"/>
+            <entry key="field24_5a_year_from" value="208"/>
+            <entry key="field24_5a_month_to" value="209"/>
+            <entry key="field24_5a_day_to" value="210"/>
+            <entry key="field24_5a_year_to" value="211"/>
+            <entry key="field24_5b" value="212"/>
+            <entry key="field24_5c" value="213"/>
+            <entry key="field24_5d" value="214"/>
+            <entry key="field24_5d_mod_a" value="215"/>
+            <entry key="field24_5d_mod_b" value="216"/>
+            <entry key="field24_5d_mod_c" value="217"/>
+            <entry key="field24_5d_mod_d" value="218"/>
+            <entry key="field24_5e" value="219"/>
+            <entry key="field24_5f_integer" value="220"/>
+            <entry key="field24_5f_decimal" value="221"/>
+            <entry key="field24_5g" value="222"/>
+            <entry key="field24_5h_top" value="203"/>
+            <entry key="field24_5h_bottom" value="223"/>                     
+            <entry key="field24_5i" value="204"/>
+            <entry key="field24_5j_top" value="205"/>
+            <entry key="field24_5j_bottom" value="224"/>
+            <entry key="field24_6_note" value="225"/>
+            <entry key="field24_6a_month_from" value="229"/>
+            <entry key="field24_6a_day_from" value="230"/>
+            <entry key="field24_6a_year_from" value="231"/>
+            <entry key="field24_6a_month_to" value="232"/>
+            <entry key="field24_6a_day_to" value="233"/>
+            <entry key="field24_6a_year_to" value="234"/>
+            <entry key="field24_6b" value="235"/>
+            <entry key="field24_6c" value="236"/>
+            <entry key="field24_6d" value="237"/>
+            <entry key="field24_6d_mod_a" value="238"/>
+            <entry key="field24_6d_mod_b" value="239"/>
+            <entry key="field24_6d_mod_c" value="240"/>
+            <entry key="field24_6d_mod_d" value="241"/>
+            <entry key="field24_6e" value="242"/>
+            <entry key="field24_6f_integer" value="243"/>
+            <entry key="field24_6f_decimal" value="244"/>
+            <entry key="field24_6g" value="245"/>
+            <entry key="field24_6h_top" value="226"/>
+            <entry key="field24_6h_bottom" value="246"/>                     
+            <entry key="field24_6i" value="227"/>
+            <entry key="field24_6j_top" value="228"/>
+            <entry key="field24_6j_bottom" value="247"/>
+            <entry key="field25" value="248"/>
+            <entry key="field25_SSN" value="249::Yes"/>
+            <entry key="field25_EIN" value="250::Yes"/>
+            <entry key="field26" value="251"/>
+            <entry key="field27_yes" value="252::Yes"/>
+            <entry key="field27_no" value="253::Yes"/>
+            <entry key="field28_integer" value="254"/>
+            <entry key="field28_decimal" value="255"/>
+            <entry key="field29_integer" value="256"/>
+            <entry key="field29_decimal" value="257"/>      
+            <entry key="field30_integer" value="258"/>       
+            <entry key="field30_decimal" value="259"/> 
+            <entry key="field31_signature" value="260"/>
+            <entry key="field31_date" value="261"/>
+            <entry key="field32" value="262"/>
+            <entry key="field32a" value="265"/>
+            <entry key="field32b" value="266"/>
+            <entry key="field33" value="269"/>
+            <entry key="field33_area_code" value="267"/>
+            <entry key="field33_phone" value="268"/>
+            <entry key="field33a" value="272"/>
+            <entry key="field33b" value="273"/>
+            
+            <!-- additional field 24 lines -->
+            <entry key="field24_7_note" value="274"/>
+            <entry key="field24_7a_month_from" value="278"/>
+            <entry key="field24_7a_day_from" value="279"/>
+            <entry key="field24_7a_year_from" value="280"/>
+            <entry key="field24_7a_month_to" value="281"/>
+            <entry key="field24_7a_day_to" value="282"/>
+            <entry key="field24_7a_year_to" value="283"/>
+            <entry key="field24_7b" value="284"/>
+            <entry key="field24_7c" value="285"/>
+            <entry key="field24_7d" value="286"/>
+            <entry key="field24_7d_mod_a" value="287"/>
+            <entry key="field24_7d_mod_b" value="288"/>
+            <entry key="field24_7d_mod_c" value="289"/>
+            <entry key="field24_7d_mod_d" value="290"/>
+            <entry key="field24_7e" value="291"/>
+            <entry key="field24_7f_integer" value="292"/>
+            <entry key="field24_7f_decimal" value="293"/>
+            <entry key="field24_7g" value="294"/>
+            <entry key="field24_7h_top" value="275"/>
+            <entry key="field24_7h_bottom" value="295"/>                     
+            <entry key="field24_7i" value="276"/>                 
+            <entry key="field24_7j_top" value="277"/>
+            <entry key="field24_7j_bottom" value="296"/>
+
+            <entry key="field24_8_note" value="297"/>
+            <entry key="field24_8a_month_from" value="301"/>
+            <entry key="field24_8a_day_from" value="302"/>
+            <entry key="field24_8a_year_from" value="303"/>
+            <entry key="field24_8a_month_to" value="304"/>
+            <entry key="field24_8a_day_to" value="305"/>
+            <entry key="field24_8a_year_to" value="306"/>
+            <entry key="field24_8b" value="307"/>
+            <entry key="field24_8c" value="308"/>
+            <entry key="field24_8d" value="309"/>
+            <entry key="field24_8d_mod_a" value="310"/>
+            <entry key="field24_8d_mod_b" value="311"/>
+            <entry key="field24_8d_mod_c" value="312"/>
+            <entry key="field24_8d_mod_d" value="313"/>
+            <entry key="field24_8e" value="314"/>
+            <entry key="field24_8f_integer" value="315"/>
+            <entry key="field24_8f_decimal" value="316"/>
+            <entry key="field24_8g" value="317"/>
+            <entry key="field24_8h_top" value="298"/>
+            <entry key="field24_8h_bottom" value="318"/>                     
+            <entry key="field24_8i" value="299"/>                 
+            <entry key="field24_8j_top" value="300"/>
+            <entry key="field24_8j_bottom" value="319"/>
+			
+            <entry key="field24_9_note" value="320"/>
+            <entry key="field24_9a_month_from" value="324"/>
+            <entry key="field24_9a_day_from" value="325"/>
+            <entry key="field24_9a_year_from" value="326"/>
+            <entry key="field24_9a_month_to" value="327"/>
+            <entry key="field24_9a_day_to" value="328"/>
+            <entry key="field24_9a_year_to" value="329"/>
+            <entry key="field24_9b" value="330"/>
+            <entry key="field24_9c" value="331"/>
+            <entry key="field24_9d" value="332"/>
+            <entry key="field24_9d_mod_a" value="333"/>
+            <entry key="field24_9d_mod_b" value="334"/>
+            <entry key="field24_9d_mod_c" value="335"/>
+            <entry key="field24_9d_mod_d" value="336"/>
+            <entry key="field24_9e" value="337"/>
+            <entry key="field24_9f_integer" value="338"/>
+            <entry key="field24_9f_decimal" value="339"/>
+            <entry key="field24_9g" value="340"/>
+            <entry key="field24_9h_top" value="321"/>
+            <entry key="field24_9h_bottom" value="341"/>                     
+            <entry key="field24_9i" value="322"/>                 
+            <entry key="field24_9j_top" value="323"/>
+            <entry key="field24_9j_bottom" value="342"/>
+
+            <entry key="field24_10_note" value="343"/>
+            <entry key="field24_10a_month_from" value="347"/>
+            <entry key="field24_10a_day_from" value="348"/>
+            <entry key="field24_10a_year_from" value="349"/>
+            <entry key="field24_10a_month_to" value="350"/>
+            <entry key="field24_10a_day_to" value="351"/>
+            <entry key="field24_10a_year_to" value="352"/>
+            <entry key="field24_10b" value="353"/>
+            <entry key="field24_10c" value="354"/>
+            <entry key="field24_10d" value="355"/>
+            <entry key="field24_10d_mod_a" value="356"/>
+            <entry key="field24_10d_mod_b" value="357"/>
+            <entry key="field24_10d_mod_c" value="358"/>
+            <entry key="field24_10d_mod_d" value="359"/>
+            <entry key="field24_10e" value="360"/>
+            <entry key="field24_10f_integer" value="361"/>
+            <entry key="field24_10f_decimal" value="362"/>
+            <entry key="field24_10g" value="363"/>
+            <entry key="field24_10h_top" value="344"/>
+            <entry key="field24_10h_bottom" value="364"/>                     
+            <entry key="field24_10i" value="345"/>                 
+            <entry key="field24_10j_top" value="346"/>
+            <entry key="field24_10j_bottom" value="365"/>
+
+            <entry key="field24_11_note" value="366"/>
+            <entry key="field24_11a_month_from" value="370"/>
+            <entry key="field24_11a_day_from" value="371"/>
+            <entry key="field24_11a_year_from" value="372"/>
+            <entry key="field24_11a_month_to" value="373"/>
+            <entry key="field24_11a_day_to" value="374"/>
+            <entry key="field24_11a_year_to" value="375"/>
+            <entry key="field24_11b" value="376"/>
+            <entry key="field24_11c" value="377"/>
+            <entry key="field24_11d" value="378"/>
+            <entry key="field24_11d_mod_a" value="379"/>
+            <entry key="field24_11d_mod_b" value="380"/>
+            <entry key="field24_11d_mod_c" value="381"/>
+            <entry key="field24_11d_mod_d" value="382"/>
+            <entry key="field24_11e" value="383"/>
+            <entry key="field24_11f_integer" value="384"/>
+            <entry key="field24_11f_decimal" value="385"/>
+            <entry key="field24_11g" value="386"/>
+            <entry key="field24_11h_top" value="367"/>
+            <entry key="field24_11h_bottom" value="387"/>                     
+            <entry key="field24_11i" value="368"/>                 
+            <entry key="field24_11j_top" value="369"/>
+            <entry key="field24_11j_bottom" value="388"/>			
+			
+            <entry key="field24_12_note" value="389"/>
+            <entry key="field24_12a_month_from" value="393"/>
+            <entry key="field24_12a_day_from" value="394"/>
+            <entry key="field24_12a_year_from" value="395"/>
+            <entry key="field24_12a_month_to" value="396"/>
+            <entry key="field24_12a_day_to" value="397"/>
+            <entry key="field24_12a_year_to" value="398"/>
+            <entry key="field24_12b" value="399"/>
+            <entry key="field24_12c" value="400"/>
+            <entry key="field24_12d" value="401"/>
+            <entry key="field24_12d_mod_a" value="402"/>
+            <entry key="field24_12d_mod_b" value="403"/>
+            <entry key="field24_12d_mod_c" value="404"/>
+            <entry key="field24_12d_mod_d" value="405"/>
+            <entry key="field24_12e" value="406"/>
+            <entry key="field24_12f_integer" value="407"/>
+            <entry key="field24_12f_decimal" value="408"/>
+            <entry key="field24_12g" value="409"/>
+            <entry key="field24_12h_top" value="390"/>
+            <entry key="field24_12h_bottom" value="410"/>                     
+            <entry key="field24_12i" value="391"/>                 
+            <entry key="field24_12j_top" value="392"/>
+            <entry key="field24_12j_bottom" value="411"/>			
+            
+            <entry key="field24_13_note" value="412"/>
+            <entry key="field24_13a_month_from" value="416"/>
+            <entry key="field24_13a_day_from" value="417"/>
+            <entry key="field24_13a_year_from" value="418"/>
+            <entry key="field24_13a_month_to" value="419"/>
+            <entry key="field24_13a_day_to" value="420"/>
+            <entry key="field24_13a_year_to" value="421"/>
+            <entry key="field24_13b" value="422"/>
+            <entry key="field24_13c" value="423"/>
+            <entry key="field24_13d" value="424"/>
+            <entry key="field24_13d_mod_a" value="425"/>
+            <entry key="field24_13d_mod_b" value="426"/>
+            <entry key="field24_13d_mod_c" value="427"/>
+            <entry key="field24_13d_mod_d" value="428"/>
+            <entry key="field24_13e" value="429"/>
+            <entry key="field24_13f_integer" value="430"/>
+            <entry key="field24_13f_decimal" value="431"/>
+            <entry key="field24_13g" value="432"/>
+            <entry key="field24_13h_top" value="413"/>
+            <entry key="field24_13h_bottom" value="433"/>                     
+            <entry key="field24_13i" value="414"/>                 
+            <entry key="field24_13j_top" value="415"/>
+            <entry key="field24_13j_bottom" value="434"/>
+			
+            <entry key="field24_14_note" value="435"/>
+            <entry key="field24_14a_month_from" value="439"/>
+            <entry key="field24_14a_day_from" value="440"/>
+            <entry key="field24_14a_year_from" value="441"/>
+            <entry key="field24_14a_month_to" value="442"/>
+            <entry key="field24_14a_day_to" value="443"/>
+            <entry key="field24_14a_year_to" value="444"/>
+            <entry key="field24_14b" value="445"/>
+            <entry key="field24_14c" value="446"/>
+            <entry key="field24_14d" value="447"/>
+            <entry key="field24_14d_mod_a" value="448"/>
+            <entry key="field24_14d_mod_b" value="449"/>
+            <entry key="field24_14d_mod_c" value="450"/>
+            <entry key="field24_14d_mod_d" value="451"/>
+            <entry key="field24_14e" value="452"/>
+            <entry key="field24_14f_integer" value="453"/>
+            <entry key="field24_14f_decimal" value="454"/>
+            <entry key="field24_14g" value="455"/>
+            <entry key="field24_14h_top" value="436"/>
+            <entry key="field24_14h_bottom" value="456"/>                     
+            <entry key="field24_14i" value="437"/>                 
+            <entry key="field24_14j_top" value="438"/>
+            <entry key="field24_14j_bottom" value="457"/>			
+
+            <entry key="field24_15_note" value="458"/>
+            <entry key="field24_15a_month_from" value="462"/>
+            <entry key="field24_15a_day_from" value="463"/>
+            <entry key="field24_15a_year_from" value="464"/>
+            <entry key="field24_15a_month_to" value="465"/>
+            <entry key="field24_15a_day_to" value="466"/>
+            <entry key="field24_15a_year_to" value="467"/>
+            <entry key="field24_15b" value="468"/>
+            <entry key="field24_15c" value="469"/>
+            <entry key="field24_15d" value="470"/>
+            <entry key="field24_15d_mod_a" value="471"/>
+            <entry key="field24_15d_mod_b" value="472"/>
+            <entry key="field24_15d_mod_c" value="473"/>
+            <entry key="field24_15d_mod_d" value="474"/>
+            <entry key="field24_15e" value="475"/>
+            <entry key="field24_15f_integer" value="476"/>
+            <entry key="field24_15f_decimal" value="477"/>
+            <entry key="field24_15g" value="478"/>
+            <entry key="field24_15h_top" value="459"/>
+            <entry key="field24_15h_bottom" value="479"/>                     
+            <entry key="field24_15i" value="460"/>                 
+            <entry key="field24_15j_top" value="461"/>
+            <entry key="field24_15j_bottom" value="480"/>
+
+            <entry key="field24_16_note" value="481"/>
+            <entry key="field24_16a_month_from" value="485"/>
+            <entry key="field24_16a_day_from" value="486"/>
+            <entry key="field24_16a_year_from" value="487"/>
+            <entry key="field24_16a_month_to" value="488"/>
+            <entry key="field24_16a_day_to" value="489"/>
+            <entry key="field24_16a_year_to" value="490"/>
+            <entry key="field24_16b" value="491"/>
+            <entry key="field24_16c" value="492"/>
+            <entry key="field24_16d" value="493"/>
+            <entry key="field24_16d_mod_a" value="494"/>
+            <entry key="field24_16d_mod_b" value="495"/>
+            <entry key="field24_16d_mod_c" value="496"/>
+            <entry key="field24_16d_mod_d" value="497"/>
+            <entry key="field24_16e" value="498"/>
+            <entry key="field24_16f_integer" value="499"/>
+            <entry key="field24_16f_decimal" value="500"/>
+            <entry key="field24_16g" value="501"/>
+            <entry key="field24_16h_top" value="482"/>
+            <entry key="field24_16h_bottom" value="502"/>                     
+            <entry key="field24_16i" value="483"/>                 
+            <entry key="field24_16j_top" value="484"/>
+            <entry key="field24_16j_bottom" value="503"/>
+
+            <entry key="field24_17_note" value="504"/>
+            <entry key="field24_17a_month_from" value="508"/>
+            <entry key="field24_17a_day_from" value="509"/>
+            <entry key="field24_17a_year_from" value="510"/>
+            <entry key="field24_17a_month_to" value="511"/>
+            <entry key="field24_17a_day_to" value="512"/>
+            <entry key="field24_17a_year_to" value="513"/>
+            <entry key="field24_17b" value="514"/>
+            <entry key="field24_17c" value="515"/>
+            <entry key="field24_17d" value="516"/>
+            <entry key="field24_17d_mod_a" value="517"/>
+            <entry key="field24_17d_mod_b" value="518"/>
+            <entry key="field24_17d_mod_c" value="519"/>
+            <entry key="field24_17d_mod_d" value="520"/>
+            <entry key="field24_17e" value="521"/>
+            <entry key="field24_17f_integer" value="522"/>
+            <entry key="field24_17f_decimal" value="523"/>
+            <entry key="field24_17g" value="524"/>
+            <entry key="field24_17h_top" value="505"/>
+            <entry key="field24_17h_bottom" value="525"/>                     
+            <entry key="field24_17i" value="506"/>                 
+            <entry key="field24_17j_top" value="507"/>
+            <entry key="field24_17j_bottom" value="526"/>
+
+            <entry key="field24_18_note" value="527"/>
+            <entry key="field24_18a_month_from" value="531"/>
+            <entry key="field24_18a_day_from" value="532"/>
+            <entry key="field24_18a_year_from" value="533"/>
+            <entry key="field24_18a_month_to" value="534"/>
+            <entry key="field24_18a_day_to" value="535"/>
+            <entry key="field24_18a_year_to" value="536"/>
+            <entry key="field24_18b" value="537"/>
+            <entry key="field24_18c" value="538"/>
+            <entry key="field24_18d" value="539"/>
+            <entry key="field24_18d_mod_a" value="540"/>
+            <entry key="field24_18d_mod_b" value="541"/>
+            <entry key="field24_18d_mod_c" value="542"/>
+            <entry key="field24_18d_mod_d" value="543"/>
+            <entry key="field24_18e" value="544"/>
+            <entry key="field24_18f_integer" value="545"/>
+            <entry key="field24_18f_decimal" value="546"/>
+            <entry key="field24_18g" value="547"/>
+            <entry key="field24_18h_top" value="528"/>
+            <entry key="field24_18h_bottom" value="548"/>                     
+            <entry key="field24_18i" value="529"/>                 
+            <entry key="field24_18j_top" value="530"/>
+            <entry key="field24_18j_bottom" value="549"/>			            
+            
+          </map>
+        </property>
+    </bean>
+    
+    <bean id="HCFA1500_02_12_PDF_NO_BACKGROUND" class="com.blueprint.oms.common.clientreporting.ReportTemplate">
+        <property name="reportType" value="9"/>
+        <property name="description" value="HCFA 1500 02/12 (PDF)"/>
+        <property name="filename" value="US/CMS1500_02_12_NO_BACKGROUND.pdf"/>
+        <property name="contextValidator" ref="hcfaContextValidator"/>
+        <property name="dateFormat" value="MM-dd-yyyy"/>
+        
+        <property name="fieldGenerator">
+          <bean class="com.blueprint.oms.common.clientreporting.CompositeFieldGenerator">
+            <property name="fieldGenerators">
+              <list>
+                <ref bean="hcfa0212FieldGenerator"/>
+                <ref bean="hcfa0212PdfFieldGenerator"/>
+              </list>
+            </property>
+          </bean>
+        </property>
+        
+        <!-- Duplicate property values from HCFA1500_02_12_PDF -->
+        <property name="generatedFieldMapping" value="#{HCFA1500_02_12_PDF.generatedFieldMapping}"/>
+    </bean>
+    
+    <bean id="clientForms" class="java.util.LinkedList" scope="prototype">
+        <constructor-arg>
+            <list>
+                <ref bean="HCFA1500_02_12"/>
+                <ref bean="HCFA1500_02_12_PDF"/>            
+            </list>
+        </constructor-arg>
+    </bean>
+    
+</beans>

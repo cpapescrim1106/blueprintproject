@@ -1,11 +1,27 @@
 "use client";
 
-import { useMemo } from "react";
+import {
+  useCallback,
+  useMemo,
+  useState,
+  type ReactNode,
+  type ThHTMLAttributes,
+} from "react";
 import { cn } from "@/lib/utils";
 
-type RecallDetail = Awaited<
+type RecallDetailBase = Awaited<
   ReturnType<typeof import("@convex/_generated/api").reports.recallPatientDetails>
 >[number];
+
+type RecallDetail = RecallDetailBase & {
+  phScore?: number;
+  phScoreBreakdown?: unknown;
+  patientAgeYears?: number | null;
+  thirdPartyBenefitAmount?: number | null;
+  appointmentSummary: RecallDetailBase["appointmentSummary"] & {
+    createdLast24Months?: number;
+  };
+};
 
 const currencyFormatter = new Intl.NumberFormat(undefined, {
   style: "currency",
@@ -51,22 +67,76 @@ const isActiveStatus = (status: RecallDetail["recallStatusKey"]) =>
   status !== "completed" && status !== "canceled";
 
 export function RecallsTable({ data }: { data: RecallDetail[] | undefined }) {
-  const rows = useMemo(
+  const filteredRows = useMemo(
     () => (data ?? []).filter((row) => isActiveStatus(row.recallStatusKey)),
     [data],
   );
-  const hasData = rows.length > 0;
+  const hasData = filteredRows.length > 0;
+
+  type SortState = { key: "phScore"; direction: "asc" | "desc" } | null;
+  const [sort, setSort] = useState<SortState>(null);
+
+  const sortedRows = useMemo(() => {
+    if (!hasData) {
+      return filteredRows;
+    }
+    if (!sort) {
+      return filteredRows;
+    }
+    const items = [...filteredRows];
+    if (sort.key === "phScore") {
+      items.sort((a, b) => {
+        const fallbackValue =
+          sort.direction === "asc"
+            ? Number.POSITIVE_INFINITY
+            : Number.NEGATIVE_INFINITY;
+        const aValue =
+          typeof a.phScore === "number" ? a.phScore : fallbackValue;
+        const bValue =
+          typeof b.phScore === "number" ? b.phScore : fallbackValue;
+        if (aValue === bValue) {
+          return 0;
+        }
+        return sort.direction === "asc" ? aValue - bValue : bValue - aValue;
+      });
+    }
+    return items;
+  }, [filteredRows, hasData, sort]);
 
   const totals = useMemo(() => {
     if (!hasData) {
       return null;
     }
-    const revenue = rows.reduce(
+    const revenue = filteredRows.reduce(
       (sum, row) => sum + (row.salesSummary?.totalRevenue ?? 0),
       0,
     );
-    return { active: rows.length, revenue };
-  }, [hasData, rows]);
+    const phAccum = filteredRows.reduce(
+      (acc, row) => {
+        if (typeof row.phScore === "number") {
+          acc.sum += row.phScore;
+          acc.count += 1;
+        }
+        return acc;
+      },
+      { sum: 0, count: 0 },
+    );
+    const averagePh =
+      phAccum.count > 0 ? Number((phAccum.sum / phAccum.count).toFixed(1)) : null;
+    return { active: filteredRows.length, revenue, averagePh };
+  }, [filteredRows, hasData]);
+
+  const togglePhScoreSort = useCallback(() => {
+    setSort((current) => {
+      if (!current || current.key !== "phScore") {
+        return { key: "phScore", direction: "desc" };
+      }
+      if (current.direction === "desc") {
+        return { key: "phScore", direction: "asc" };
+      }
+      return null;
+    });
+  }, []);
 
   return (
     <div className="rounded-lg border bg-background shadow-sm">
@@ -74,7 +144,7 @@ export function RecallsTable({ data }: { data: RecallDetail[] | undefined }) {
         <div>
           <h3 className="text-sm font-semibold text-foreground">Patient recall roster</h3>
           <p className="text-xs text-muted-foreground">
-            Showing open recalls only. Currently capped to the latest {rows.length} entries.
+            Showing open recalls only. Currently capped to the latest {filteredRows.length} entries.
           </p>
         </div>
         {totals ? (
@@ -87,6 +157,14 @@ export function RecallsTable({ data }: { data: RecallDetail[] | undefined }) {
             <span className="font-medium text-foreground">
               {formatRevenue(totals.revenue)}
             </span>
+            {typeof totals.averagePh === "number" ? (
+              <>
+                {" "}· Avg PH Score:{" "}
+                <span className="font-medium text-foreground">
+                  {totals.averagePh.toFixed(1)}
+                </span>
+              </>
+            ) : null}
           </div>
         ) : null}
       </div>
@@ -99,13 +177,38 @@ export function RecallsTable({ data }: { data: RecallDetail[] | undefined }) {
               <Th className="w-[20%]">Schedule</Th>
               <Th className="w-[18%]">Workflow</Th>
               <Th className="w-[16%]">Activity</Th>
-              <Th className="w-[20%]">Revenue & device</Th>
+              <Th className="w-[18%]">Revenue & device</Th>
+              <Th
+                className="w-[8%]"
+                aria-sort={
+                  sort?.key === "phScore"
+                    ? sort.direction === "asc"
+                      ? "ascending"
+                      : "descending"
+                    : "none"
+                }
+              >
+                <button
+                  type="button"
+                  onClick={togglePhScoreSort}
+                  className="flex w-full items-center gap-1 text-left text-muted-foreground hover:text-foreground focus:outline-none"
+                >
+                  <span>PH Score</span>
+                  <span className="text-xs">
+                    {sort?.key === "phScore"
+                      ? sort.direction === "desc"
+                        ? "↓"
+                        : "↑"
+                      : ""}
+                  </span>
+                </button>
+              </Th>
               <Th className="w-[8%]">Notes</Th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {hasData ? (
-              rows.map((row) => {
+              sortedRows.map((row) => {
                 const warning = row.overdueDays !== null && row.overdueDays > 0;
                 return (
                   <tr
@@ -189,6 +292,27 @@ export function RecallsTable({ data }: { data: RecallDetail[] | undefined }) {
                     </Td>
 
                     <Td>
+                      <div className="text-sm font-semibold text-foreground">
+                        {typeof row.phScore === "number"
+                          ? row.phScore.toFixed(1)
+                          : "—"}
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Age: {row.patientAgeYears ?? "—"} · Benefit: {
+                          row.thirdPartyBenefitAmount !== null &&
+                          row.thirdPartyBenefitAmount !== undefined
+                            ? formatRevenue(row.thirdPartyBenefitAmount)
+                            : "—"
+                        }
+                      </div>
+                      <div className="text-[11px] text-muted-foreground">
+                        Appts (24m): {
+                          row.appointmentSummary?.createdLast24Months ?? 0
+                        }
+                      </div>
+                    </Td>
+
+                    <Td>
                       <span className="line-clamp-3 text-[11px] text-muted-foreground">
                         {row.notes || "—"}
                       </span>
@@ -198,7 +322,7 @@ export function RecallsTable({ data }: { data: RecallDetail[] | undefined }) {
               })
             ) : (
               <tr>
-                <Td colSpan={6} className="py-6 text-center text-sm text-muted-foreground">
+                <Td colSpan={7} className="py-6 text-center text-sm text-muted-foreground">
                   No recall rows available yet.
                 </Td>
               </tr>
@@ -213,12 +337,11 @@ export function RecallsTable({ data }: { data: RecallDetail[] | undefined }) {
 function Th({
   children,
   className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+  ...rest
+}: ThHTMLAttributes<HTMLTableCellElement>) {
   return (
     <th
+      {...rest}
       className={cn(
         "px-2 py-2 text-left font-semibold tracking-wide text-muted-foreground",
         className,
@@ -234,7 +357,7 @@ function Td({
   className,
   colSpan,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   className?: string;
   colSpan?: number;
 }) {

@@ -9,6 +9,10 @@ final class ArgumentFormatter {
   private ArgumentFormatter() {
   }
 
+  interface DetailedValue {
+    String describe();
+  }
+
   static String summarizeArgs(Object[] args) {
     if (args == null || args.length == 0) {
       return "[]";
@@ -23,6 +27,10 @@ final class ArgumentFormatter {
   static String summarizeValue(Object value) {
     if (value == null) {
       return "null";
+    }
+
+    if (value instanceof DetailedValue) {
+      return ((DetailedValue) value).describe();
     }
 
     if (value.getClass().isArray()) {

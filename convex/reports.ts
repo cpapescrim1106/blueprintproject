@@ -1,34 +1,62 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { calculatePhScore } from "./patientScore";
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 const MS_PER_WEEK = MS_PER_DAY * 7;
 
+const parseIsoDate = (value: string): Date | null => {
+  if (!value) {
+    return null;
+  }
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+
+  // Accept YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = trimmed.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})$/);
+  if (isoMatch) {
+    const [, yearStr, monthStr, dayStr] = isoMatch;
+    const year = Number(yearStr);
+    const month = Number(monthStr);
+    const day = Number(dayStr);
+    if (Number.isNaN(year) || Number.isNaN(month) || Number.isNaN(day)) {
+      return null;
+    }
+    const date = new Date(year, month - 1, day);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+    return date;
+  }
+
+  // Accept DD/MM/YY or DD/MM/YYYY
+  const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
+  if (slashMatch) {
+    const [, dayStr, monthStr, yearFragment] = slashMatch;
+    const day = Number(dayStr);
+    const month = Number(monthStr);
+    let year = Number(yearFragment);
+    if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) {
+      return null;
+    }
+    if (yearFragment.length === 2) {
+      year += year >= 70 ? 1900 : 2000;
+    }
+    const date = new Date(year, month - 1, day);
+    if (Number.isNaN(date.getTime())) {
+      return null;
+    }
+    return date;
+  }
+
+  return null;
+};
+
 const parseMmDdYyyy = (value: string): number | null => {
-  const parts = value.split("/");
-  if (parts.length !== 3) {
-    return null;
-  }
-  const [monthStr, dayStr, yearStr] = parts;
-  const month = Number(monthStr);
-  const day = Number(dayStr);
-  const year = Number(yearStr);
-  if (
-    Number.isNaN(month) ||
-    Number.isNaN(day) ||
-    Number.isNaN(year) ||
-    month < 1 ||
-    month > 12 ||
-    day < 1 ||
-    day > 31
-  ) {
-    return null;
-  }
-  const date = new Date(year, month - 1, day);
-  if (Number.isNaN(date.getTime())) {
-    return null;
-  }
-  return date.getTime();
+  const date = parseIsoDate(value);
+  return date ? date.getTime() : null;
 };
 
 const parseCurrency = (value: string): number | null => {
@@ -41,6 +69,112 @@ const parseCurrency = (value: string): number | null => {
   }
   const amount = Number(normalized);
   return Number.isNaN(amount) ? null : amount;
+};
+
+const parseNumberStrict = (value: string | undefined): number | null => {
+  if (!value) {
+    return null;
+  }
+  const normalized = value.replace(/[^0-9.\-]/g, "");
+  if (!normalized) {
+    return null;
+  }
+  const parsed = Number(normalized);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const computeAgeFromBirthDate = (birthMs: number | null): number | null => {
+  if (birthMs === null) {
+    return null;
+  }
+  const birthDate = new Date(birthMs);
+  if (Number.isNaN(birthDate.getTime())) {
+    return null;
+  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let age = today.getFullYear() - birthDate.getFullYear();
+  const monthDiff = today.getMonth() - birthDate.getMonth();
+  if (
+    monthDiff < 0 ||
+    (monthDiff === 0 && today.getDate() < birthDate.getDate())
+  ) {
+    age -= 1;
+  }
+  return age >= 0 ? age : null;
+};
+
+const extractPatientAge = (
+  record: Record<string, string> | undefined,
+): number | null => {
+  if (!record) {
+    return null;
+  }
+  const ageKeys = ["Age", "Patient Age", "Age Years"];
+  for (const key of ageKeys) {
+    const candidate = parseNumberStrict(record[key]);
+    if (candidate !== null) {
+      return candidate;
+    }
+  }
+  const dobKeys = ["DOB", "Date of Birth", "Birthdate"];
+  for (const key of dobKeys) {
+    const value = record[key];
+    if (!value) {
+      continue;
+    }
+    const ms = parseMmDdYyyy(value);
+    const age = computeAgeFromBirthDate(ms);
+    if (age !== null) {
+      return age;
+    }
+  }
+  return null;
+};
+
+const extractThirdPartyBenefit = (
+  primary: Record<string, string> | undefined,
+  fallback?: Record<string, string>,
+): number | null => {
+  const sources = [primary, fallback].filter(Boolean) as Array<
+    Record<string, string>
+  >;
+  const explicitKeys = [
+    "Third Party Benefit",
+    "Third-party Benefit",
+    "Third Party Benefit Amount",
+    "Insurance Benefit",
+    "Benefit Amount",
+    "Hearing Benefit Amount",
+    "Hearing Aid Benefit Amount",
+  ];
+
+  for (const source of sources) {
+    for (const key of explicitKeys) {
+      if (source[key]) {
+        const amount = parseCurrency(source[key]);
+        if (amount !== null) {
+          return amount;
+        }
+      }
+    }
+  }
+
+  for (const source of sources) {
+    for (const [key, value] of Object.entries(source)) {
+      if (!value) {
+        continue;
+      }
+      if (key.toLowerCase().includes("benefit")) {
+        const amount = parseCurrency(value);
+        if (amount !== null) {
+          return amount;
+        }
+      }
+    }
+  }
+
+  return null;
 };
 
 const startOfWeekMonday = (ms: number): number => {
@@ -658,35 +792,53 @@ export const recallPatientDetails = query({
       .query("salesByIncomeAccount")
       .collect();
 
-    const appointmentSummary = new Map<
+    const appointmentMetrics = new Map<
       string,
-      { lastCompletedMs: number | null; completedCount: number }
+      {
+        lastCompletedMs: number | null;
+        completedCount: number;
+        createdWithinWindow: number;
+      }
     >();
+
+    const todayForAppointments = new Date();
+    todayForAppointments.setHours(0, 0, 0, 0);
+    const createdWindowStart =
+      todayForAppointments.getTime() - 730 * MS_PER_DAY;
 
     for (const appointment of appointments) {
       const data = appointment.data;
-      const status = (data["Status"] ?? "").toString().trim().toLowerCase();
-      if (status !== "completed") {
-        continue;
-      }
       const patientId = (data["Patient ID"] ?? "").toString().trim();
       if (!patientId || !patientIds.has(patientId)) {
         continue;
       }
-      const apptMs = toMs((data["Appt. date"] ?? "").toString());
-      if (apptMs === null) {
-        continue;
-      }
-      const summary =
-        appointmentSummary.get(patientId) ?? {
+
+      const metrics =
+        appointmentMetrics.get(patientId) ?? {
           lastCompletedMs: null,
           completedCount: 0,
+          createdWithinWindow: 0,
         };
-      summary.completedCount += 1;
-      if (summary.lastCompletedMs === null || apptMs > summary.lastCompletedMs) {
-        summary.lastCompletedMs = apptMs;
+
+      const status = (data["Status"] ?? "").toString().trim().toLowerCase();
+      if (status === "completed") {
+        const apptMs = toMs((data["Appt. date"] ?? "").toString());
+        if (apptMs !== null) {
+          metrics.completedCount += 1;
+          if (metrics.lastCompletedMs === null || apptMs > metrics.lastCompletedMs) {
+            metrics.lastCompletedMs = apptMs;
+          }
+        }
       }
-      appointmentSummary.set(patientId, summary);
+
+      const createdDateRaw =
+        (data["Created date"] ?? data["Created Date"] ?? "").toString();
+      const createdMs = toMs(createdDateRaw);
+      if (createdMs !== null && createdMs >= createdWindowStart) {
+        metrics.createdWithinWindow += 1;
+      }
+
+      appointmentMetrics.set(patientId, metrics);
     }
 
     const salesSummary = new Map<
@@ -716,6 +868,23 @@ export const recallPatientDetails = query({
         }
       }
       salesSummary.set(patientId, summary);
+    }
+
+    const activeRecords = await ctx.db
+      .query("activePatients")
+      .withIndex("by_report", (q) => q.eq("reportName", "All Active Patients"))
+      .collect();
+
+    const activeByPatientId = new Map<string, Record<string, string>>();
+    for (const record of activeRecords) {
+      const data = record.data;
+      const patientId = (data["Patient ID"] ?? "").toString().trim();
+      if (!patientId) {
+        continue;
+      }
+      if (!activeByPatientId.has(patientId)) {
+        activeByPatientId.set(patientId, data);
+      }
     }
 
     const today = new Date();
@@ -756,14 +925,19 @@ export const recallPatientDetails = query({
         }
       }
 
-      const appointmentInfo = appointmentSummary.get(patientId) ?? {
+      const appointmentInfo = appointmentMetrics.get(patientId) ?? {
         lastCompletedMs: null,
         completedCount: 0,
+        createdWithinWindow: 0,
       };
       const salesInfo = salesSummary.get(patientId) ?? {
         totalRevenue: 0,
         lastSaleMs: null,
       };
+
+      const activeRecord = activeByPatientId.get(patientId);
+      const patientAgeYears = extractPatientAge(activeRecord);
+      const benefitAmount = extractThirdPartyBenefit(activeRecord, data);
 
       let deviceAgeDays: number | null = null;
       let deviceAgeYears: number | null = null;
@@ -776,6 +950,15 @@ export const recallPatientDetails = query({
           ((todayMs - salesInfo.lastSaleMs) / (MS_PER_DAY * 365)).toFixed(1),
         );
       }
+
+      const phScoreResult = calculatePhScore({
+        patientAgeYears,
+        deviceAgeYears,
+        appointmentsCreated24M: appointmentInfo.createdWithinWindow,
+        lastAppointmentCompletedMs: appointmentInfo.lastCompletedMs,
+        thirdPartyBenefitAmount: benefitAmount,
+        accountValue: salesInfo.totalRevenue,
+      });
 
       return {
         patientId,
@@ -802,6 +985,7 @@ export const recallPatientDetails = query({
           completedCount: appointmentInfo.completedCount,
           lastCompletedMs: appointmentInfo.lastCompletedMs,
           lastCompletedIso: formatIsoDate(appointmentInfo.lastCompletedMs),
+          createdLast24Months: appointmentInfo.createdWithinWindow,
         },
         salesSummary: {
           totalRevenue: salesInfo.totalRevenue,
@@ -810,6 +994,10 @@ export const recallPatientDetails = query({
           deviceAgeDays,
           deviceAgeYears,
         },
+        patientAgeYears,
+        thirdPartyBenefitAmount: benefitAmount,
+        phScore: phScoreResult.total,
+        phScoreBreakdown: phScoreResult.components,
       };
     });
 
@@ -823,5 +1011,147 @@ export const recallPatientDetails = query({
     });
 
     return details;
+  },
+});
+
+export const patientHealthScore = query({
+  args: {
+    patientId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const targetId = args.patientId.trim();
+    if (!targetId) {
+      return {
+        patientId: args.patientId,
+        phScore: null,
+        inputs: null,
+      };
+    }
+
+    const appointments = await ctx.db
+      .query("appointments")
+      .withIndex("by_report", (q) =>
+        q.eq("reportName", "Referral Source - Appointments"),
+      )
+      .collect();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const createdWindowStart = today.getTime() - 730 * MS_PER_DAY;
+
+    let completedCount = 0;
+    let lastCompletedMs: number | null = null;
+    let createdWithinWindow = 0;
+
+    for (const appointment of appointments) {
+      const data = appointment.data;
+      const patientId = (data["Patient ID"] ?? "").toString().trim();
+      if (patientId !== targetId) {
+        continue;
+      }
+
+      const status = (data["Status"] ?? "").toString().trim().toLowerCase();
+      if (status === "completed") {
+        const apptMs = toMs((data["Appt. date"] ?? "").toString());
+        if (apptMs !== null) {
+          completedCount += 1;
+          if (lastCompletedMs === null || apptMs > lastCompletedMs) {
+            lastCompletedMs = apptMs;
+          }
+        }
+      }
+
+      const createdMs = toMs(
+        (data["Created date"] ?? data["Created Date"] ?? "").toString(),
+      );
+      if (createdMs !== null && createdMs >= createdWindowStart) {
+        createdWithinWindow += 1;
+      }
+    }
+
+    const sales = await ctx.db
+      .query("salesByIncomeAccount")
+      .collect();
+
+    let totalRevenue = 0;
+    let lastSaleMs: number | null = null;
+    for (const sale of sales) {
+      const data = sale.data;
+      const patientId = (data["Patient ID"] ?? "").toString().trim();
+      if (patientId !== targetId) {
+        continue;
+      }
+      const revenue = parseCurrency((data["Revenue"] ?? "").toString());
+      if (revenue !== null) {
+        totalRevenue += revenue;
+      }
+      const saleMs = toMs((data["Date"] ?? "").toString());
+      if (saleMs !== null) {
+        if (lastSaleMs === null || saleMs > lastSaleMs) {
+          lastSaleMs = saleMs;
+        }
+      }
+    }
+
+    let deviceAgeYears: number | null = null;
+    if (lastSaleMs !== null) {
+      deviceAgeYears = Number(
+        ((today.getTime() - lastSaleMs) / (MS_PER_DAY * 365)).toFixed(1),
+      );
+    }
+
+    const activeRecords = await ctx.db
+      .query("activePatients")
+      .withIndex("by_report", (q) => q.eq("reportName", "All Active Patients"))
+      .collect();
+
+    let activeRecord: Record<string, string> | undefined;
+    for (const record of activeRecords) {
+      const patientId = (record.data["Patient ID"] ?? "").toString().trim();
+      if (patientId === targetId) {
+        activeRecord = record.data;
+        break;
+      }
+    }
+
+    const recallRecords = await ctx.db
+      .query("patientRecalls")
+      .withIndex("by_report", (q) => q.eq("reportName", "Patient Recalls"))
+      .collect();
+
+    let recallRecord: Record<string, string> | undefined;
+    for (const record of recallRecords) {
+      const patientId = (record.data["Patient ID"] ?? "").toString().trim();
+      if (patientId === targetId) {
+        recallRecord = record.data;
+        break;
+      }
+    }
+
+    const patientAgeYears = extractPatientAge(activeRecord);
+    const benefitAmount = extractThirdPartyBenefit(activeRecord, recallRecord);
+
+    const score = calculatePhScore({
+      patientAgeYears,
+      deviceAgeYears,
+      appointmentsCreated24M: createdWithinWindow,
+      lastAppointmentCompletedMs: lastCompletedMs,
+      thirdPartyBenefitAmount: benefitAmount,
+      accountValue: totalRevenue,
+    });
+
+    return {
+      patientId: targetId,
+      phScore: score.total,
+      breakdown: score.components,
+      inputs: {
+        patientAgeYears,
+        deviceAgeYears,
+        appointmentsCreated24M: createdWithinWindow,
+        lastAppointmentCompletedMs: lastCompletedMs,
+        thirdPartyBenefitAmount: benefitAmount,
+        accountValue: totalRevenue,
+      },
+    };
   },
 });
