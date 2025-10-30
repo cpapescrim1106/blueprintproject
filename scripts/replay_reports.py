@@ -197,6 +197,7 @@ def live_flow(
 ) -> None:
     base_request = messages.request_by_name(report_name)
     request = apply_period_overrides(base_request, period_start, period_end)
+    expected_report_name = base_request.report_name or report_name
 
     sqs_client = create_sqs_client(DEFAULT_CONFIG.region_name)
     replay_client = SQSReplayClient(sqs_client, DEFAULT_CONFIG)
@@ -232,7 +233,7 @@ def live_flow(
         )
 
     notification = replay_client.wait_for_result(
-        expected_report=report_name,
+        expected_report=expected_report_name,
         poll_interval=poll_wait,
         timeout_seconds=poll_timeout,
         on_wait=log_wait,
@@ -245,7 +246,7 @@ def live_flow(
     if not result_key:
         raise SystemExit("Received notification lacks reportResultXml key.")
 
-    print(f"Received notification for {report_name}:")
+    print(f"Received notification for {expected_report_name}:")
     print_json(notification.body)
 
     s3_client = create_s3_client(DEFAULT_CONFIG.region_name)

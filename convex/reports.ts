@@ -34,21 +34,39 @@ const parseIsoDate = (value: string): Date | null => {
   // Accept DD/MM/YY or DD/MM/YYYY
   const slashMatch = trimmed.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/);
   if (slashMatch) {
-    const [, dayStr, monthStr, yearFragment] = slashMatch;
-    const day = Number(dayStr);
-    const month = Number(monthStr);
+    const [, part1Str, part2Str, yearFragment] = slashMatch;
+    const part1 = Number(part1Str);
+    const part2 = Number(part2Str);
     let year = Number(yearFragment);
-    if (Number.isNaN(day) || Number.isNaN(month) || Number.isNaN(year)) {
+    if (Number.isNaN(part1) || Number.isNaN(part2) || Number.isNaN(year)) {
       return null;
     }
     if (yearFragment.length === 2) {
       year += year >= 70 ? 1900 : 2000;
     }
-    const date = new Date(year, month - 1, day);
-    if (Number.isNaN(date.getTime())) {
-      return null;
+
+    const candidates: Array<{ month: number; day: number }> = [
+      { month: part2, day: part1 }, // assume DD/MM
+      { month: part1, day: part2 }, // assume MM/DD
+    ];
+    for (const candidate of candidates) {
+      const { month, day } = candidate;
+      if (month < 1 || month > 12 || day < 1 || day > 31) {
+        continue;
+      }
+      const date = new Date(year, month - 1, day);
+      if (Number.isNaN(date.getTime())) {
+        continue;
+      }
+      if (
+        date.getFullYear() === year &&
+        date.getMonth() === month - 1 &&
+        date.getDate() === day
+      ) {
+        return date;
+      }
     }
-    return date;
+    return null;
   }
 
   return null;
@@ -128,6 +146,45 @@ const extractPatientAge = (
     if (age !== null) {
       return age;
     }
+  }
+  return null;
+};
+
+const normalizeKey = (value: string | null | undefined): string => {
+  return (value ?? "").trim().toLowerCase();
+};
+
+const composeNameKey = (name: string | null | undefined, location: string | null | undefined) => {
+  if (!name) {
+    return null;
+  }
+  let normalizedName = name.trim();
+  if (!normalizedName) {
+    return null;
+  }
+  if (normalizedName.includes(",")) {
+    const [last, first] = normalizedName.split(",", 2);
+    normalizedName = `${(first ?? "").trim()} ${(last ?? "").trim()}`.trim();
+  }
+  return `${normalizeKey(normalizedName)}|${normalizeKey(location ?? "")}`;
+};
+
+const extractPatientId = (record: Record<string, string> | undefined) => {
+  if (!record) {
+    return null;
+  }
+  const candidates = ["Patient ID", "Patient", "Account Number", "ID"];
+  for (const key of candidates) {
+    if (record[key]) {
+      const candidate = record[key].toString().trim();
+      if (candidate) {
+        return candidate;
+      }
+    }
+  }
+  const ref = record["Reference #"]?.toString().trim();
+  if (ref) {
+    return ref;
   }
   return null;
 };
@@ -781,17 +838,7 @@ export const recallPatientDetails = query({
       }
     }
 
-    const appointments = await ctx.db
-      .query("appointments")
-      .withIndex("by_report", (q) =>
-        q.eq("reportName", "Referral Source - Appointments"),
-      )
-      .collect();
-
-    const sales = await ctx.db
-      .query("salesByIncomeAccount")
-      .collect();
-
+    const patientIdList = Array.from(patientIds);
     const appointmentMetrics = new Map<
       string,
       {
@@ -806,36 +853,40 @@ export const recallPatientDetails = query({
     const createdWindowStart =
       todayForAppointments.getTime() - 730 * MS_PER_DAY;
 
-    for (const appointment of appointments) {
-      const data = appointment.data;
-      const patientId = (data["Patient ID"] ?? "").toString().trim();
-      if (!patientId || !patientIds.has(patientId)) {
-        continue;
-      }
+    for (const patientId of patientIdList) {
+      const docs = await ctx.db
+        .query("appointments")
+        .withIndex("by_patient", (q) => q.eq("patientId", patientId))
+        .collect();
 
-      const metrics =
-        appointmentMetrics.get(patientId) ?? {
-          lastCompletedMs: null,
-          completedCount: 0,
-          createdWithinWindow: 0,
-        };
+      const metrics = {
+        lastCompletedMs: null as number | null,
+        completedCount: 0,
+        createdWithinWindow: 0,
+      };
 
-      const status = (data["Status"] ?? "").toString().trim().toLowerCase();
-      if (status === "completed") {
-        const apptMs = toMs((data["Appt. date"] ?? "").toString());
-        if (apptMs !== null) {
-          metrics.completedCount += 1;
-          if (metrics.lastCompletedMs === null || apptMs > metrics.lastCompletedMs) {
-            metrics.lastCompletedMs = apptMs;
+      for (const appointment of docs) {
+        const data = appointment.data;
+        const status = (data["Status"] ?? "").toString().trim().toLowerCase();
+        if (status === "completed") {
+          const apptMs = toMs((data["Appt. date"] ?? "").toString());
+          if (apptMs !== null) {
+            metrics.completedCount += 1;
+            if (
+              metrics.lastCompletedMs === null ||
+              apptMs > metrics.lastCompletedMs
+            ) {
+              metrics.lastCompletedMs = apptMs;
+            }
           }
         }
-      }
 
-      const createdDateRaw =
-        (data["Created date"] ?? data["Created Date"] ?? "").toString();
-      const createdMs = toMs(createdDateRaw);
-      if (createdMs !== null && createdMs >= createdWindowStart) {
-        metrics.createdWithinWindow += 1;
+        const createdDateRaw =
+          (data["Created date"] ?? data["Created Date"] ?? "").toString();
+        const createdMs = toMs(createdDateRaw);
+        if (createdMs !== null && createdMs >= createdWindowStart) {
+          metrics.createdWithinWindow += 1;
+        }
       }
 
       appointmentMetrics.set(patientId, metrics);
@@ -845,45 +896,81 @@ export const recallPatientDetails = query({
       string,
       { totalRevenue: number; lastSaleMs: number | null }
     >();
-    for (const sale of sales) {
-      const data = sale.data;
-      const patientId = (data["Patient ID"] ?? "").toString().trim();
-      if (!patientId || !patientIds.has(patientId)) {
-        continue;
-      }
-      const revenue = parseCurrency((data["Revenue"] ?? "").toString());
-      if (revenue === null) {
-        continue;
-      }
-      const saleMs = toMs((data["Date"] ?? "").toString());
-      const summary =
-        salesSummary.get(patientId) ?? {
-          totalRevenue: 0,
-          lastSaleMs: null,
-        };
-      summary.totalRevenue += revenue;
-      if (saleMs !== null) {
-        if (summary.lastSaleMs === null || saleMs > summary.lastSaleMs) {
-          summary.lastSaleMs = saleMs;
+    for (const patientId of patientIdList) {
+      const docs = await ctx.db
+        .query("salesByIncomeAccount")
+        .withIndex("by_patient", (q) => q.eq("patientId", patientId))
+        .collect();
+
+      const summary = {
+        totalRevenue: 0,
+        lastSaleMs: null as number | null,
+      };
+
+      for (const sale of docs) {
+        const data = sale.data;
+        const revenue = parseCurrency((data["Revenue"] ?? "").toString());
+        if (revenue === null) {
+          continue;
+        }
+        const saleMs = toMs((data["Date"] ?? "").toString());
+        summary.totalRevenue += revenue;
+        if (saleMs !== null) {
+          if (summary.lastSaleMs === null || saleMs > summary.lastSaleMs) {
+            summary.lastSaleMs = saleMs;
+          }
         }
       }
+
       salesSummary.set(patientId, summary);
     }
 
-    const activeRecords = await ctx.db
-      .query("activePatients")
-      .withIndex("by_report", (q) => q.eq("reportName", "All Active Patients"))
-      .collect();
-
     const activeByPatientId = new Map<string, Record<string, string>>();
-    for (const record of activeRecords) {
-      const data = record.data;
+    for (const patientId of patientIdList) {
+      const docs = await ctx.db
+        .query("activePatients")
+        .withIndex("by_patient", (q) => q.eq("patientId", patientId))
+        .collect();
+      if (docs.length > 0) {
+        activeByPatientId.set(patientId, docs[0].data);
+      }
+    }
+
+    const fallbackNameKeys = new Set<string>();
+    for (const recall of recalls) {
+      const data = recall.data;
       const patientId = (data["Patient ID"] ?? "").toString().trim();
-      if (!patientId) {
+      if (patientId && activeByPatientId.has(patientId)) {
         continue;
       }
-      if (!activeByPatientId.has(patientId)) {
-        activeByPatientId.set(patientId, data);
+      const patientName = (data["Patient"] ?? "").toString().trim();
+      const location = (data["Location"] ?? "").toString().trim();
+      const key = composeNameKey(patientName, location);
+      if (key) {
+        fallbackNameKeys.add(key);
+      }
+    }
+
+    const activeByNameKey = new Map<string, Record<string, string>>();
+    if (fallbackNameKeys.size > 0) {
+      const activeRecords = await ctx.db
+        .query("activePatients")
+        .withIndex("by_report", (q) => q.eq("reportName", "All Active Patients"))
+        .collect();
+
+      for (const record of activeRecords) {
+        const data = record.data;
+        const firstName = (data["First Name"] ?? "").toString().trim();
+        const lastName = (data["Last Name"] ?? "").toString().trim();
+        const combinedName = `${firstName} ${lastName}`.trim();
+        const patientField = (data["Patient"] ?? "").toString();
+        const nameKey = composeNameKey(
+          combinedName || patientField,
+          data["Location"],
+        );
+        if (nameKey && fallbackNameKeys.has(nameKey) && !activeByNameKey.has(nameKey)) {
+          activeByNameKey.set(nameKey, data);
+        }
       }
     }
 
@@ -935,7 +1022,13 @@ export const recallPatientDetails = query({
         lastSaleMs: null,
       };
 
-      const activeRecord = activeByPatientId.get(patientId);
+      let activeRecord = activeByPatientId.get(patientId);
+      if (!activeRecord) {
+        const nameKey = composeNameKey(patientName, location);
+        if (nameKey) {
+          activeRecord = activeByNameKey.get(nameKey);
+        }
+      }
       const patientAgeYears = extractPatientAge(activeRecord);
       const benefitAmount = extractThirdPartyBenefit(activeRecord, data);
 
@@ -1100,20 +1193,6 @@ export const patientHealthScore = query({
       );
     }
 
-    const activeRecords = await ctx.db
-      .query("activePatients")
-      .withIndex("by_report", (q) => q.eq("reportName", "All Active Patients"))
-      .collect();
-
-    let activeRecord: Record<string, string> | undefined;
-    for (const record of activeRecords) {
-      const patientId = (record.data["Patient ID"] ?? "").toString().trim();
-      if (patientId === targetId) {
-        activeRecord = record.data;
-        break;
-      }
-    }
-
     const recallRecords = await ctx.db
       .query("patientRecalls")
       .withIndex("by_report", (q) => q.eq("reportName", "Patient Recalls"))
@@ -1126,6 +1205,42 @@ export const patientHealthScore = query({
         recallRecord = record.data;
         break;
       }
+    }
+
+    const recallNameKey = composeNameKey(
+      recallRecord ? (recallRecord["Patient"] ?? "").toString() : null,
+      recallRecord ? (recallRecord["Location"] ?? "").toString() : null,
+    );
+
+    const activeRecords = await ctx.db
+      .query("activePatients")
+      .withIndex("by_report", (q) => q.eq("reportName", "All Active Patients"))
+      .collect();
+
+    let activeRecord: Record<string, string> | undefined;
+    const activeNameMap = new Map<string, Record<string, string>>();
+    for (const record of activeRecords) {
+      const data = record.data;
+      const candidateId = extractPatientId(data);
+      if (candidateId === targetId) {
+        activeRecord = data;
+        break;
+      }
+      const firstName = (data["First Name"] ?? "").toString().trim();
+      const lastName = (data["Last Name"] ?? "").toString().trim();
+      const combinedName = `${firstName} ${lastName}`.trim();
+      const patientField = (data["Patient"] ?? "").toString();
+      const nameKey = composeNameKey(
+        combinedName || patientField,
+        data["Location"],
+      );
+      if (nameKey && !activeNameMap.has(nameKey)) {
+        activeNameMap.set(nameKey, data);
+      }
+    }
+
+    if (!activeRecord && recallNameKey) {
+      activeRecord = activeNameMap.get(recallNameKey);
     }
 
     const patientAgeYears = extractPatientAge(activeRecord);

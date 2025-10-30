@@ -6,6 +6,12 @@ from pathlib import Path
 from typing import Any, Dict, Iterable, List, Optional
 
 
+_REPORT_ALIASES: Dict[str, str] = {
+    # "All Active Patients" export reuses the Campaign export payload.
+    "All Active Patients": "Campaign export",
+}
+
+
 @dataclass(frozen=True)
 class ReportRequest:
     message: Dict[str, Any]
@@ -54,16 +60,29 @@ class ReportMessages:
     s3_pointers: List[Dict[str, Any]]
     notifications: List[Dict[str, Any]]
 
+    def _candidate_names(self, report_name: str) -> Iterable[str]:
+        seen = set()
+        current = report_name
+        while current not in seen:
+            yield current
+            seen.add(current)
+            mapped = _REPORT_ALIASES.get(current)
+            if mapped is None:
+                break
+            current = mapped
+
     def request_by_name(self, report_name: str) -> ReportRequest:
-        for request in self.requests:
-            if request.report_name == report_name:
-                return request
+        for candidate in self._candidate_names(report_name):
+            for request in self.requests:
+                if request.report_name == candidate:
+                    return request
         raise KeyError(f"Report request for '{report_name}' not found.")
 
     def response_by_name(self, report_name: str) -> ReportResponse:
-        for response in self.responses:
-            if response.report_name == report_name:
-                return response
+        for candidate in self._candidate_names(report_name):
+            for response in self.responses:
+                if response.report_name == candidate:
+                    return response
         raise KeyError(f"Report response for '{report_name}' not found.")
 
 

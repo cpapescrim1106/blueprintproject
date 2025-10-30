@@ -19,6 +19,40 @@ const canonicalize = (record: Record<string, string>) => {
 const CHUNK_SIZE = 200;
 const CLEAR_LIMIT = 200;
 
+const PATIENT_ID_KEYS = [
+  "Patient ID",
+  "Patient",
+  "Account Number",
+  "ID",
+  "Reference #",
+];
+
+const ACTIVE_PATIENT_KEYS = [
+  "Patient",
+  "Patient ID",
+  "Account Number",
+  "ID",
+  "Reference #",
+];
+
+function extractPatientIdForTable(
+  tableName: string,
+  record: Record<string, string>,
+): string | undefined {
+  const keys =
+    tableName === "activePatients" ? ACTIVE_PATIENT_KEYS : PATIENT_ID_KEYS;
+  for (const key of keys) {
+    const value = record[key];
+    if (value) {
+      const trimmed = value.trim();
+      if (trimmed) {
+        return trimmed;
+      }
+    }
+  }
+  return undefined;
+}
+
 function chunkRows<T>(rows: T[], size: number): T[][] {
   const result: T[][] = [];
   for (let index = 0; index < rows.length; index += size) {
@@ -161,6 +195,7 @@ export const processRowsBatch = internalMutation({
       if (uniqueKey) {
         delete rowData.__uniqueKey;
       }
+      const patientIdValue = extractPatientIdForTable(targetTable, rowData);
 
       await ctx.db.insert("reportRows", {
         ingestionId: args.ingestionId,
@@ -182,6 +217,7 @@ export const processRowsBatch = internalMutation({
         await ctx.db.insert(tableName as any, {
           uniqueKey,
           reportName: args.reportName,
+          patientId: patientIdValue,
           data: rowData,
           firstCapturedAt: args.capturedAt,
           lastCapturedAt: args.capturedAt,
@@ -195,6 +231,8 @@ export const processRowsBatch = internalMutation({
       const incomingSignature = canonicalize(rowData);
       if (existingSignature !== incomingSignature) {
         await ctx.db.patch(existing._id, {
+          reportName: args.reportName,
+          patientId: patientIdValue,
           data: rowData,
           lastCapturedAt: args.capturedAt,
           lastIngestionId: args.ingestionId,
@@ -202,6 +240,8 @@ export const processRowsBatch = internalMutation({
         stats.updated += 1;
       } else {
         await ctx.db.patch(existing._id, {
+          reportName: args.reportName,
+          patientId: patientIdValue ?? existing.patientId,
           lastCapturedAt: args.capturedAt,
           lastIngestionId: args.ingestionId,
         });

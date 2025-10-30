@@ -21,41 +21,49 @@ export default defineSchema({
   appointments: defineTable({
     uniqueKey: v.string(),
     reportName: v.string(),
+    patientId: v.optional(v.string()),
     data: v.record(v.string(), v.string()),
     firstCapturedAt: v.number(),
     lastCapturedAt: v.number(),
     lastIngestionId: v.id("ingestions"),
   })
     .index("by_unique", ["uniqueKey"])
-    .index("by_report", ["reportName"]),
+    .index("by_report", ["reportName"])
+    .index("by_patient", ["patientId"]),
   patientRecalls: defineTable({
     uniqueKey: v.string(),
     reportName: v.string(),
+    patientId: v.optional(v.string()),
     data: v.record(v.string(), v.string()),
     firstCapturedAt: v.number(),
     lastCapturedAt: v.number(),
     lastIngestionId: v.id("ingestions"),
   })
     .index("by_unique", ["uniqueKey"])
-    .index("by_report", ["reportName"]),
+    .index("by_report", ["reportName"])
+    .index("by_patient", ["patientId"]),
   activePatients: defineTable({
     uniqueKey: v.string(),
     reportName: v.string(),
+    patientId: v.optional(v.string()),
     data: v.record(v.string(), v.string()),
     firstCapturedAt: v.number(),
     lastCapturedAt: v.number(),
     lastIngestionId: v.id("ingestions"),
   })
     .index("by_unique", ["uniqueKey"])
-    .index("by_report", ["reportName"]),
+    .index("by_report", ["reportName"])
+    .index("by_patient", ["patientId"]),
   salesByIncomeAccount: defineTable({
     uniqueKey: v.string(),
     reportName: v.string(),
+    patientId: v.optional(v.string()),
     data: v.record(v.string(), v.string()),
     firstCapturedAt: v.number(),
     lastCapturedAt: v.number(),
     lastIngestionId: v.id("ingestions"),
   })
     .index("by_unique", ["uniqueKey"])
-    .index("by_report", ["reportName"]),
+    .index("by_report", ["reportName"])
+    .index("by_patient", ["patientId"]),
 });

@@ -3,7 +3,7 @@ export type ReportKey =
   | "appointments"
   | "salesIncomeAccount"
   | "patientRecalls"
-  | "campaignActivePatients";
+  | "allActivePatients";
 
 export type ReportConfig = {
   key: ReportKey;
@@ -44,11 +44,11 @@ export const REPORT_CONFIGS: ReportConfig[] = [
     reportName: "Patient Recalls",
   },
   {
-    key: "campaignActivePatients",
-    label: "Campaign Export – Active Patients",
+    key: "allActivePatients",
+    label: "All Active Patients",
     description:
-      "Marketing campaign export used as the active patients list (campaign ID 12037).",
-    reportName: "Campaign export",
+      "Clinic master roster with demographics, device mix, and benefit data for PH Score calculations.",
+    reportName: "All Active Patients",
   },
 ];
 
