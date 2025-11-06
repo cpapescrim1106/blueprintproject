@@ -7,6 +7,8 @@ import {
   Gauge,
   Layers3,
   LineChart,
+  MessageSquare,
+  Target,
   UsersRound,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,6 +24,8 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "Overview", icon: Gauge },
   { href: "/appointments", label: "Appointments", icon: CalendarRange },
   { href: "/revenue", label: "Revenue", icon: LineChart },
+  { href: "/ph-score", label: "PH Score", icon: Target },
+  { href: "/messaging", label: "Messaging", icon: MessageSquare },
   { href: "/recalls", label: "Recalls", icon: UsersRound },
   { href: "/ingestions", label: "Ingestions", icon: Layers3 },
 ];

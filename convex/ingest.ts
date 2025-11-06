@@ -78,7 +78,7 @@ export const ingestReport = action({
     rows: v.array(rowInput),
   },
   handler: async (ctx, args) => {
-    const prep = await ctx.runMutation("ingest:createIngestion", {
+    const prep = await ctx.runMutation("ingest:createIngestion" as any, {
       reportName: args.reportName,
       capturedAt: args.capturedAt,
       sourceKey: args.sourceKey,
@@ -86,10 +86,13 @@ export const ingestReport = action({
 
     if (prep.replaced) {
       while (true) {
-        const removed = await ctx.runMutation("ingest:clearRowsBatch", {
-          ingestionId: prep.ingestionId,
-          limit: CLEAR_LIMIT,
-        });
+        const removed = await ctx.runMutation(
+          "ingest:clearRowsBatch" as any,
+          {
+            ingestionId: prep.ingestionId,
+            limit: CLEAR_LIMIT,
+          },
+        );
         if (removed === 0) {
           break;
         }
@@ -98,17 +101,20 @@ export const ingestReport = action({
 
     const stats: Stats = { inserted: 0, updated: 0, unchanged: 0 };
     for (const chunk of chunkRows(args.rows, CHUNK_SIZE)) {
-      const chunkStats = await ctx.runMutation("ingest:processRowsBatch", {
-        ingestionId: prep.ingestionId,
-        reportName: args.reportName,
-        capturedAt: args.capturedAt,
-        targetTable: args.targetTable,
-        rows: chunk,
-      });
+      const chunkStats = await ctx.runMutation(
+        "ingest:processRowsBatch" as any,
+        {
+          ingestionId: prep.ingestionId,
+          reportName: args.reportName,
+          capturedAt: args.capturedAt,
+          targetTable: args.targetTable,
+          rows: chunk,
+        },
+      );
       mergeStats(stats, chunkStats);
     }
 
-    await ctx.runMutation("ingest:finalizeIngestion", {
+    await ctx.runMutation("ingest:finalizeIngestion" as any, {
       ingestionId: prep.ingestionId,
       capturedAt: args.capturedAt,
       rowCount: args.rows.length,

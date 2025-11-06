@@ -9,16 +9,15 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  type TooltipFormatter,
-  type ValueType,
-  type NameType,
 } from "recharts";
-import { api } from "@convex/_generated/api";
-import { type InferQueryResult } from "convex/react";
 
-type CompletedByYearData = InferQueryResult<
-  typeof api.reports.completedAppointmentsByYear
->;
+type CompletedByYearData = {
+  maxMonthIndex: number;
+  series: Array<{
+    year: number;
+    months: Array<{ monthIndex: number; count: number }>;
+  }>;
+};
 
 type CompletedAppointmentsLineChartProps = {
   data?: CompletedByYearData;
@@ -36,16 +35,6 @@ const formatMonthLabel = (monthIndex: number) =>
   new Intl.DateTimeFormat("en-US", {
     month: "short",
   }).format(new Date(2000, monthIndex, 1));
-
-const tooltipFormatter: TooltipFormatter<number, string> = (
-  value: ValueType,
-  name: NameType,
-) => {
-  if (typeof value !== "number") {
-    return [value, name];
-  }
-  return [value.toLocaleString(), name];
-};
 
 export function CompletedAppointmentsLineChart({
   data,
@@ -75,10 +64,17 @@ export function CompletedAppointmentsLineChart({
     );
   }
 
-  const seriesMaps = data.series.map((series) => [
-    series.year.toString(),
-    new Map(series.months.map((point) => [point.monthIndex, point.count])),
-  ]);
+  const seriesMaps: Array<[string, Map<number, number>]> = data.series.map(
+    (series: CompletedByYearData["series"][number]) => [
+      series.year.toString(),
+      new Map(
+        series.months.map(
+          (point: CompletedByYearData["series"][number]["months"][number]) =>
+            [point.monthIndex, point.count] as const,
+        ),
+      ),
+    ],
+  );
 
   const chartData = Array.from({ length: monthCount }, (_, monthIndex) => {
     const row: Record<string, number | string> = {
@@ -109,7 +105,9 @@ export function CompletedAppointmentsLineChart({
             stroke="hsl(var(--muted-foreground))"
           />
           <Tooltip
-            formatter={tooltipFormatter}
+            formatter={(value) =>
+              typeof value === "number" ? value.toLocaleString() : value
+            }
             contentStyle={{
               backgroundColor: "hsl(var(--card))",
               borderRadius: 8,
@@ -117,7 +115,11 @@ export function CompletedAppointmentsLineChart({
             }}
           />
           <Legend />
-          {data.series.map((series, idx) => (
+          {data.series.map(
+            (
+              series: CompletedByYearData["series"][number],
+              idx: number,
+            ) => (
             <Line
               key={series.year}
               dataKey={series.year.toString()}

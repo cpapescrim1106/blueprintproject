@@ -23,6 +23,15 @@ function formatTimestamp(ms: number) {
 type Ingestion =
   FunctionReturnType<typeof api.reports.listIngestions>[number];
 
+type ReportRow = {
+  _id?: Id<"reportRows">;
+  _creationTime?: number;
+  reportName: string;
+  rowIndex: number;
+  ingestionId?: Id<"ingestions">;
+  data: Record<string, string>;
+};
+
 export default function IngestionsPage() {
   const [reportFilter, setReportFilter] = useState("");
   const [selectedIngestion, setSelectedIngestion] =
@@ -53,7 +62,11 @@ export default function IngestionsPage() {
     if (!ingestions || !selectedIngestion) {
       return null;
     }
-    return ingestions.find((ing) => ing._id === selectedIngestion) ?? null;
+    return (
+      ingestions.find(
+        (ingestion: Ingestion) => ingestion._id === selectedIngestion,
+      ) ?? null
+    );
   }, [ingestions, selectedIngestion]);
 
   const columns = useMemo(() => {
@@ -166,7 +179,7 @@ export default function IngestionsPage() {
                   No ingestions yet. Run the pipeline script to load data.
                 </p>
               ) : (
-                ingestions.map((ingestion) => {
+                ingestions.map((ingestion: Ingestion) => {
                   const isActive = ingestion._id === selectedIngestion;
                   return (
                     <button
@@ -228,9 +241,9 @@ export default function IngestionsPage() {
                     </thead>
                     <tbody className="divide-y divide-border bg-background">
                       {rows && rows.length > 0 ? (
-                        rows.map((row, index) => (
+                        rows.map((row: ReportRow, index: number) => (
                           <tr key={row._id ?? index}>
-                            {columns.map((column) => (
+                            {columns.map((column: string) => (
                               <td
                                 key={column}
                                 className="whitespace-nowrap px-3 py-2 text-xs text-muted-foreground"

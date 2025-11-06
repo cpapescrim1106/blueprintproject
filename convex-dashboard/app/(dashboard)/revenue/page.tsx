@@ -9,10 +9,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { QuarterlyRevenueChart } from "@/components/QuarterlyRevenueChart";
+import {
+  QuarterlyRevenueChart,
+  type QuarterlyDataset,
+} from "@/components/QuarterlyRevenueChart";
 
 export default function RevenuePage() {
-  const quarterlyRevenue = useQuery(api.reports.quarterlySalesSummary, {});
+  const quarterlyRevenue = useQuery(api.reports.quarterlySalesSummary, {}) as
+    | QuarterlyDataset
+    | undefined;
 
   return (
     <div className="bg-background text-foreground">

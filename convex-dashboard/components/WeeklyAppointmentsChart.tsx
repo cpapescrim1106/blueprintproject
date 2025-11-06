@@ -10,10 +10,6 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  type TooltipFormatter,
-  type TooltipProps,
-  type ValueType,
-  type NameType,
 } from "recharts";
 
 type WeeklyBucket = {
@@ -34,35 +30,6 @@ const formatWeekLabel = (weekStart: number) => {
     day: "numeric",
   });
   return formatter.format(new Date(weekStart));
-};
-
-const formatRangeLabel = (bucket: WeeklyBucket) => {
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-  return `${formatter.format(new Date(bucket.weekStart))} → ${formatter.format(new Date(bucket.weekEnd - 1))}`;
-};
-
-const tooltipFormatter: TooltipFormatter<number, string> = (
-  value: ValueType,
-  name: NameType,
-) => {
-  if (typeof value !== "number") {
-    return [value, name];
-  }
-  return [value.toLocaleString(), name];
-};
-
-const tooltipLabelFormatter = (
-  label: string,
-  payload: TooltipProps<ValueType, NameType>["payload"],
-) => {
-  if (!payload || payload.length === 0) {
-    return label;
-  }
-  const bucket = payload[0]?.payload as WeeklyBucket | undefined;
-  return bucket ? formatRangeLabel(bucket) : label;
 };
 
 export function WeeklyAppointmentsChart({
@@ -108,8 +75,9 @@ export function WeeklyAppointmentsChart({
             stroke="hsl(var(--muted-foreground))"
           />
           <Tooltip
-            formatter={tooltipFormatter}
-            labelFormatter={tooltipLabelFormatter}
+            formatter={(value) =>
+              typeof value === "number" ? value.toLocaleString() : value
+            }
             contentStyle={{
               backgroundColor: "hsl(var(--card))",
               borderRadius: 8,

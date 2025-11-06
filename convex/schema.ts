@@ -66,4 +66,31 @@ export default defineSchema({
     .index("by_unique", ["uniqueKey"])
     .index("by_report", ["reportName"])
     .index("by_patient", ["patientId"]),
+  messageThreads: defineTable({
+    patientId: v.optional(v.string()),
+    patientName: v.optional(v.string()),
+    normalizedPhone: v.string(),
+    displayPhone: v.optional(v.string()),
+    location: v.optional(v.string()),
+    phScore: v.optional(v.number()),
+    tags: v.optional(v.array(v.string())),
+    lastMessageAt: v.number(),
+    lastMessageSnippet: v.optional(v.string()),
+    lastOutboundStatus: v.optional(v.string()),
+    lastOutboundAt: v.optional(v.number()),
+  })
+    .index("by_patient", ["patientId"])
+    .index("by_phone", ["normalizedPhone"])
+    .index("by_lastMessage", ["lastMessageAt"]),
+  messages: defineTable({
+    threadId: v.id("messageThreads"),
+    direction: v.union(v.literal("outbound"), v.literal("inbound")),
+    body: v.string(),
+    status: v.optional(v.string()),
+    sentAt: v.number(),
+    normalizedPhone: v.optional(v.string()),
+    ringcentralId: v.optional(v.string()),
+    patientId: v.optional(v.string()),
+    error: v.optional(v.string()),
+  }).index("by_thread", ["threadId", "sentAt"]),
 });

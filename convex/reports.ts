@@ -1270,3 +1270,204 @@ export const patientHealthScore = query({
     };
   },
 });
+
+export const activePatientScores = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const activeRecords = await ctx.db
+      .query("activePatients")
+      .withIndex("by_report", (q) => q.eq("reportName", "All Active Patients"))
+      .collect();
+
+    const filteredActive = activeRecords.filter((record) => {
+      const patientId = extractPatientId(record.data);
+      return !!patientId;
+    });
+
+    const limit = args.limit ?? filteredActive.length;
+
+    const patientIds = new Set<string>();
+    for (const record of filteredActive) {
+      const patientId = extractPatientId(record.data);
+      if (patientId) {
+        patientIds.add(patientId);
+      }
+    }
+
+    const appointmentMetrics = new Map<
+      string,
+      {
+        lastCompletedMs: number | null;
+        completedCount: number;
+        createdWithinWindow: number;
+      }
+    >();
+
+    const todayForAppointments = new Date();
+    todayForAppointments.setHours(0, 0, 0, 0);
+    const createdWindowStart =
+      todayForAppointments.getTime() - 730 * MS_PER_DAY;
+
+    const appointmentDocs = await ctx.db
+      .query("appointments")
+      .withIndex("by_report", (q) =>
+        q.eq("reportName", "Referral Source - Appointments"),
+      )
+      .collect();
+
+    for (const appointment of appointmentDocs) {
+      const data = appointment.data;
+      const patientId = (data["Patient ID"] ?? "").toString().trim();
+      if (!patientId || !patientIds.has(patientId)) {
+        continue;
+      }
+
+      const metrics =
+        appointmentMetrics.get(patientId) ?? {
+          lastCompletedMs: null,
+          completedCount: 0,
+          createdWithinWindow: 0,
+        };
+
+      const status = (data["Status"] ?? "").toString().trim().toLowerCase();
+      if (status === "completed") {
+        const apptMs = toMs((data["Appt. date"] ?? "").toString());
+        if (apptMs !== null) {
+          metrics.completedCount += 1;
+          if (metrics.lastCompletedMs === null || apptMs > metrics.lastCompletedMs) {
+            metrics.lastCompletedMs = apptMs;
+          }
+        }
+      }
+
+      const createdDateRaw =
+        (data["Created date"] ?? data["Created Date"] ?? "").toString();
+      const createdMs = toMs(createdDateRaw);
+      if (createdMs !== null && createdMs >= createdWindowStart) {
+        metrics.createdWithinWindow += 1;
+      }
+
+      appointmentMetrics.set(patientId, metrics);
+    }
+
+    const salesDocs = await ctx.db
+      .query("salesByIncomeAccount")
+      .withIndex("by_report", (q) =>
+        q.eq("reportName", "Sales by Income Account"),
+      )
+      .collect();
+
+    const salesSummary = new Map<
+      string,
+      { totalRevenue: number; lastSaleMs: number | null }
+    >();
+    for (const sale of salesDocs) {
+      const data = sale.data;
+      const patientId = (data["Patient ID"] ?? "").toString().trim();
+      if (!patientId || !patientIds.has(patientId)) {
+        continue;
+      }
+      const revenue = parseCurrency((data["Revenue"] ?? "").toString());
+      if (revenue === null) {
+        continue;
+      }
+      const saleMs = toMs((data["Date"] ?? "").toString());
+      const summary =
+        salesSummary.get(patientId) ?? {
+          totalRevenue: 0,
+          lastSaleMs: null,
+        };
+      summary.totalRevenue += revenue;
+      if (saleMs !== null) {
+        if (summary.lastSaleMs === null || saleMs > summary.lastSaleMs) {
+          summary.lastSaleMs = saleMs;
+        }
+      }
+      salesSummary.set(patientId, summary);
+    }
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const todayMs = today.getTime();
+
+    const results = filteredActive.map((record) => {
+      const data = record.data;
+      const patientId =
+        extractPatientId(data) ??
+        ((data["Patient"] ?? "").toString().trim() || record._id.toString());
+
+      const firstName = (data["First Name"] ?? "").toString().trim();
+      const lastName = (data["Last Name"] ?? "").toString().trim();
+      const patientName =
+        firstName || lastName
+          ? `${firstName} ${lastName}`.trim()
+          : patientId;
+      const location = (data["Location"] ?? "").toString().trim();
+
+      const patientAgeYears = extractPatientAge(data);
+      const benefitAmount = extractThirdPartyBenefit(data);
+
+      const appointmentInfo = appointmentMetrics.get(patientId) ?? {
+        lastCompletedMs: null,
+        completedCount: 0,
+        createdWithinWindow: 0,
+      };
+      const salesInfo = salesSummary.get(patientId) ?? {
+        totalRevenue: 0,
+        lastSaleMs: null,
+      };
+
+      let deviceAgeDays: number | null = null;
+      let deviceAgeYears: number | null = null;
+      if (salesInfo.lastSaleMs !== null) {
+        deviceAgeDays = Math.max(
+          0,
+          Math.round((todayMs - salesInfo.lastSaleMs) / MS_PER_DAY),
+        );
+        deviceAgeYears = Number(
+          ((todayMs - salesInfo.lastSaleMs) / (MS_PER_DAY * 365)).toFixed(1),
+        );
+      }
+
+      const phScoreResult = calculatePhScore({
+        patientAgeYears,
+        deviceAgeYears,
+        appointmentsCreated24M: appointmentInfo.createdWithinWindow,
+        lastAppointmentCompletedMs: appointmentInfo.lastCompletedMs,
+        thirdPartyBenefitAmount: benefitAmount,
+        accountValue: salesInfo.totalRevenue,
+      });
+
+      return {
+        patientId,
+        patientName,
+        firstName,
+        lastName,
+        location,
+        patientAgeYears,
+        thirdPartyBenefitAmount: benefitAmount,
+        phScore: phScoreResult.total,
+        phScoreBreakdown: phScoreResult.components,
+        appointmentSummary: {
+          completedCount: appointmentInfo.completedCount,
+          createdLast24Months: appointmentInfo.createdWithinWindow,
+          lastCompletedMs: appointmentInfo.lastCompletedMs,
+          lastCompletedIso: formatIsoDate(appointmentInfo.lastCompletedMs),
+        },
+        salesSummary: {
+          totalRevenue: salesInfo.totalRevenue,
+          lastSaleMs: salesInfo.lastSaleMs,
+          lastSaleIso: formatIsoDate(salesInfo.lastSaleMs),
+          deviceAgeDays,
+          deviceAgeYears,
+        },
+      };
+    });
+
+    results.sort((a, b) => b.phScore - a.phScore);
+
+    return results.slice(0, limit);
+  },
+});

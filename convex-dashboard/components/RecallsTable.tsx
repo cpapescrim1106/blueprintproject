@@ -8,10 +8,44 @@ import {
   type ThHTMLAttributes,
 } from "react";
 import { cn } from "@/lib/utils";
+import type { Id } from "@convex/_generated/dataModel";
 
-type RecallDetailBase = Awaited<
-  ReturnType<typeof import("@convex/_generated/api").reports.recallPatientDetails>
->[number];
+type RecallDetailBase = {
+  _id?: Id<"patientRecalls">;
+  patientId: string;
+  patientName: string;
+  location: string;
+  recallDateMs: number | null;
+  recallDateIso: string | null;
+  recallType: string | null;
+  recallStatusKey: string | null;
+  recallStatusLabel: string | null;
+  assignee: string | null;
+  outcome: string | null;
+  notes: string | null;
+  nextAppointmentIso: string | null;
+  followUpIso: string | null;
+  mobilePhone: string | null;
+  homePhone: string | null;
+  workPhone: string | null;
+  overdueDays: number | null;
+  daysUntil: number | null;
+  appointmentSummary: {
+    completedCount: number;
+    lastCompletedIso: string | null;
+    createdLast24Months: number;
+  };
+  salesSummary: {
+    totalRevenue: number;
+    lastSaleIso: string | null;
+    deviceAgeDays: number | null;
+    deviceAgeYears: number | null;
+  };
+  patientAgeYears: number | null;
+  thirdPartyBenefitAmount: number | null;
+  phScore: number | null;
+  phScoreBreakdown: unknown;
+};
 
 type RecallDetail = RecallDetailBase & {
   phScore?: number;
@@ -40,7 +74,8 @@ const formatDate = (iso: string | null) => {
   }
 };
 
-const formatPhone = (value: string) => (value ? value : "—");
+const formatPhone = (value: string | null | undefined) =>
+  value ? value : "—";
 
 const formatRevenue = (amount: number) => {
   if (!amount) {

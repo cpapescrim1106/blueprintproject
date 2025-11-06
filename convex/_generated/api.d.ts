@@ -9,6 +9,7 @@
  */
 
 import type * as ingest from "../ingest.js";
+import type * as messaging from "../messaging.js";
 import type * as patientScore from "../patientScore.js";
 import type * as reports from "../reports.js";
 
@@ -28,6 +29,7 @@ import type {
  */
 declare const fullApi: ApiFromModules<{
   ingest: typeof ingest;
+  messaging: typeof messaging;
   patientScore: typeof patientScore;
   reports: typeof reports;
 }>;

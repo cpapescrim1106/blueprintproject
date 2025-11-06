@@ -55,3 +55,32 @@ The easiest way to deploy your Next.js app is to use the [Vercel Platform](https
 
 - Join the [Convex Discord community](https://convex.dev/community) to get help in real-time.
 - Follow [Convex on GitHub](https://github.com/get-convex/), star and contribute to the open-source implementation of Convex.
+
+## Patient Messaging via RingCentral
+
+The `/messaging` workspace adds two-way SMS support on top of the existing Blueprint dashboards:
+
+- A five-day appointment agenda sourced from Convex ingestion tables.
+- One-to-one patient threads stored in new `messageThreads` / `messages` tables.
+- Bulk reminder sending with templates that accept `{name}`, `{date}`, `{time}`, and `{location}` tokens.
+
+### Configure credentials
+
+Store the following secrets with `convex env set` (and in `.env.local` for local dev):
+
+```
+RINGCENTRAL_CLIENT_ID=...
+RINGCENTRAL_CLIENT_SECRET=...
+RINGCENTRAL_JWT=...
+RINGCENTRAL_FROM_NUMBER=+15551234567
+# Optional override, defaults to production:
+RINGCENTRAL_SERVER_URL=https://platform.ringcentral.com
+```
+
+> Ensure `RINGCENTRAL_FROM_NUMBER` is SMS-enabled. Rotate JWT tokens regularly.
+
+Finally, redeploy Convex after updating secrets so the new schema and indexes are applied:
+
+```
+npx convex deploy
+```

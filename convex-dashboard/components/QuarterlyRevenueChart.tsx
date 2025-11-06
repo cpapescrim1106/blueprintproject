@@ -23,7 +23,7 @@ type QuarterlyBucket = {
   [year: string]: number | string;
 };
 
-type QuarterlyDataset = {
+export type QuarterlyDataset = {
   years: number[];
   quarters: QuarterlyBucket[];
 };

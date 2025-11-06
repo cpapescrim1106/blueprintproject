@@ -18,6 +18,17 @@ type SeriesPoint = {
   count: number;
 };
 
+type RecallOverview = {
+  totalRecalls: number;
+  statuses: Array<{ key: string; label: string; count: number }>;
+  overdue: Array<{ key: string; label: string; count: number }>;
+  upcoming: Array<{ key: string; label: string; count: number }>;
+  timeToAction?: {
+    series: Array<{ key: string; label: string; count: number }>;
+    medianDays: number | null;
+  };
+};
+
 function StatCard({
   label,
   value,
@@ -118,17 +129,27 @@ export default function RecallsPage() {
 
     const totalRecalls = overview.totalRecalls;
     const completedRecalls =
-      overview.statuses.find((item) => item.key === "completed")?.count ?? 0;
+      overview.statuses.find(
+        (item: RecallOverview["statuses"][number]) => item.key === "completed",
+      )?.count ?? 0;
     const canceledRecalls =
-      overview.statuses.find((item) => item.key === "canceled")?.count ?? 0;
+      overview.statuses.find(
+        (item: RecallOverview["statuses"][number]) => item.key === "canceled",
+      )?.count ?? 0;
     const activeRecalls =
       totalRecalls - completedRecalls - canceledRecalls;
     const overdueCount = overview.overdue.reduce(
-      (sum, bucket) => sum + bucket.count,
+      (
+        sum: number,
+        bucket: RecallOverview["overdue"][number],
+      ) => sum + bucket.count,
       0,
     );
     const upcomingCount = overview.upcoming.reduce(
-      (sum, bucket) => sum + bucket.count,
+      (
+        sum: number,
+        bucket: RecallOverview["upcoming"][number],
+      ) => sum + bucket.count,
       0,
     );
 
@@ -227,7 +248,12 @@ export default function RecallsPage() {
             series={overview?.timeToAction?.series ?? []}
             total={
               overview?.timeToAction?.series.reduce(
-                (sum, bucket) => sum + bucket.count,
+                (
+                  sum: number,
+                  bucket: NonNullable<
+                    RecallOverview["timeToAction"]
+                  >["series"][number],
+                ) => sum + bucket.count,
                 0,
               ) ?? 0
             }

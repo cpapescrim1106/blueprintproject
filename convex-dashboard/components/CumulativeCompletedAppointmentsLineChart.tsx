@@ -9,16 +9,15 @@ import {
   Tooltip,
   XAxis,
   YAxis,
-  type TooltipFormatter,
-  type ValueType,
-  type NameType,
 } from "recharts";
-import { api } from "@convex/_generated/api";
-import { type InferQueryResult } from "convex/react";
 
-type CompletedByYearData = InferQueryResult<
-  typeof api.reports.completedAppointmentsByYear
->;
+type CompletedByYearData = {
+  maxMonthIndex: number;
+  series: Array<{
+    year: number;
+    months: Array<{ monthIndex: number; count: number }>;
+  }>;
+};
 
 type CumulativeAppointmentsLineChartProps = {
   data?: CompletedByYearData;
@@ -36,16 +35,6 @@ const formatMonthLabel = (monthIndex: number) =>
   new Intl.DateTimeFormat("en-US", {
     month: "short",
   }).format(new Date(2000, monthIndex, 1));
-
-const tooltipFormatter: TooltipFormatter<number, string> = (
-  value: ValueType,
-  name: NameType,
-) => {
-  if (typeof value !== "number") {
-    return [value, name];
-  }
-  return [value.toLocaleString(), name];
-};
 
 export function CumulativeCompletedAppointmentsLineChart({
   data,
@@ -75,12 +64,19 @@ export function CumulativeCompletedAppointmentsLineChart({
     );
   }
 
-  const seriesMaps = data.series.map((series) => ({
-    key: series.year.toString(),
-    counts: new Map(
-      series.months.map((point) => [point.monthIndex, point.count]),
-    ),
-  }));
+  const seriesMaps = data.series.map(
+    (series: CompletedByYearData["series"][number]) => ({
+      key: series.year.toString(),
+      counts: new Map(
+        series.months.map(
+          (point: CompletedByYearData["series"][number]["months"][number]) => [
+            point.monthIndex,
+            point.count,
+          ],
+        ),
+      ),
+    }),
+  );
 
   const runningTotals = new Array(seriesMaps.length).fill(0);
 
@@ -88,11 +84,16 @@ export function CumulativeCompletedAppointmentsLineChart({
     const row: Record<string, number | string> = {
       label: formatMonthLabel(monthIndex),
     };
-    seriesMaps.forEach(({ key, counts }, idx) => {
-      const increment = counts.get(monthIndex) ?? 0;
-      runningTotals[idx] += increment;
-      row[key] = runningTotals[idx];
-    });
+    seriesMaps.forEach(
+      (
+        { key, counts }: { key: string; counts: Map<number, number> },
+        idx: number,
+      ) => {
+        const increment = counts.get(monthIndex) ?? 0;
+        runningTotals[idx] += increment;
+        row[key] = runningTotals[idx];
+      },
+    );
     return row;
   });
 
@@ -115,7 +116,9 @@ export function CumulativeCompletedAppointmentsLineChart({
             stroke="hsl(var(--muted-foreground))"
           />
           <Tooltip
-            formatter={tooltipFormatter}
+            formatter={(value) =>
+              typeof value === "number" ? value.toLocaleString() : value
+            }
             contentStyle={{
               backgroundColor: "hsl(var(--card))",
               borderRadius: 8,
@@ -123,7 +126,8 @@ export function CumulativeCompletedAppointmentsLineChart({
             }}
           />
           <Legend />
-          {seriesMaps.map(({ key }, idx) => (
+          {seriesMaps.map(
+            ({ key }: { key: string; counts: Map<number, number> }, idx: number) => (
             <Line
               key={key}
               dataKey={key}
