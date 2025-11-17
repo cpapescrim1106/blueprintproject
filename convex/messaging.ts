@@ -9,6 +9,32 @@ type TokenCache = {
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 let cachedToken: TokenCache | null = null;
 
+const encodeBase64 = (input: string) => {
+  const encoder = typeof TextEncoder !== "undefined" ? new TextEncoder() : null;
+  const bytes = encoder
+    ? encoder.encode(input)
+    : Uint8Array.from(Array.from(input), (char) => char.charCodeAt(0));
+
+  const base64Table =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let output = "";
+  for (let i = 0; i < bytes.length; i += 3) {
+    const byte1 = bytes[i];
+    const hasByte2 = i + 1 < bytes.length;
+    const hasByte3 = i + 2 < bytes.length;
+    const byte2 = hasByte2 ? bytes[i + 1] : 0;
+    const byte3 = hasByte3 ? bytes[i + 2] : 0;
+
+    const combined = (byte1 << 16) | (byte2 << 8) | byte3;
+    output +=
+      base64Table[(combined >> 18) & 63] +
+      base64Table[(combined >> 12) & 63] +
+      (hasByte2 ? base64Table[(combined >> 6) & 63] : "=") +
+      (hasByte3 ? base64Table[combined & 63] : "=");
+  }
+  return output;
+};
+
 const normalizePhone = (raw: string | null | undefined) => {
   if (!raw) {
     return null;
@@ -87,7 +113,7 @@ const getAccessToken = async () => {
     return cachedToken.token;
   }
 
-  const authHeader = Buffer.from(`${config.clientId}:${config.clientSecret}`).toString("base64");
+  const authHeader = encodeBase64(`${config.clientId}:${config.clientSecret}`);
   const body = new URLSearchParams({
     grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
     assertion: config.jwt,
@@ -147,7 +173,7 @@ const sendSms = async (toNumber: string, text: string) => {
   }
 
   return {
-    ringcentralId: json?.id as string | undefined,
+    ringcentralId: json?.id !== undefined ? String(json.id) : undefined,
     status: json?.messageStatus ?? "sent",
     creationTime: json?.creationTime ? new Date(json.creationTime).getTime() : Date.now(),
   };

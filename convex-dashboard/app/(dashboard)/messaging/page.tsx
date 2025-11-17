@@ -96,19 +96,21 @@ function useAgendaData(): AgendaResponse {
 }
 
 function usePhScoreMap() {
-  const scores = useQuery(api.reports.activePatientScores, { limit: 400 });
+  const recallDetails = useQuery(api.reports.recallPatientDetails, {
+    limit: 400,
+  });
   return useMemo(() => {
-    if (!scores) {
-      return new Map<string, number>();
-    }
     const map = new Map<string, number>();
-    for (const row of scores) {
+    if (!recallDetails) {
+      return map;
+    }
+    for (const row of recallDetails) {
       if (row.patientId && typeof row.phScore === "number") {
         map.set(row.patientId, row.phScore);
       }
     }
     return map;
-  }, [scores]);
+  }, [recallDetails]);
 }
 
 function useRecentThreads(limit = 20): MessageThread[] {
@@ -158,6 +160,12 @@ export default function MessagingPage() {
   const [bulkState, setBulkState] = useState<
     null | { type: "success" | "error"; message: string }
   >(null);
+  const [manualRecipient, setManualRecipient] = useState({
+    name: "",
+    patientId: "",
+    phone: "",
+    location: "",
+  });
 
   const lookedUpThread = useThreadLookup(selectedRecipient);
   const threadData = useThreadData(
@@ -331,6 +339,111 @@ export default function MessagingPage() {
       <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
         <div className="space-y-6">
           <Card>
+            <CardHeader className="pb-4">
+              <CardTitle>Quick compose</CardTitle>
+              <CardDescription>
+                Enter any patient manually to start a conversation or send a one-off text.
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="grid gap-2">
+                <label className="text-xs uppercase text-muted-foreground">
+                  Patient name
+                </label>
+                <input
+                  suppressHydrationWarning
+                  className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  placeholder="e.g. Casey Smith"
+                  value={manualRecipient.name}
+                  onChange={(event) =>
+                    setManualRecipient((prev) => ({
+                      ...prev,
+                      name: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <div className="grid gap-2 md:grid-cols-2">
+                <div className="grid gap-2">
+                  <label className="text-xs uppercase text-muted-foreground">
+                    Patient ID (optional)
+                  </label>
+                  <input
+                    suppressHydrationWarning
+                    className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    placeholder="Internal ID"
+                    value={manualRecipient.patientId}
+                    onChange={(event) =>
+                      setManualRecipient((prev) => ({
+                        ...prev,
+                        patientId: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <label className="text-xs uppercase text-muted-foreground">
+                    Location (optional)
+                  </label>
+                  <input
+                    suppressHydrationWarning
+                    className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    placeholder="Clinic location"
+                    value={manualRecipient.location}
+                    onChange={(event) =>
+                      setManualRecipient((prev) => ({
+                        ...prev,
+                        location: event.target.value,
+                      }))
+                    }
+                  />
+                </div>
+              </div>
+              <div className="grid gap-2">
+                <label className="text-xs uppercase text-muted-foreground">
+                  Mobile number
+                </label>
+                <input
+                  suppressHydrationWarning
+                  className="rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                  placeholder="+1 (555) 123-4567"
+                  value={manualRecipient.phone}
+                  onChange={(event) =>
+                    setManualRecipient((prev) => ({
+                      ...prev,
+                      phone: event.target.value,
+                    }))
+                  }
+                />
+              </div>
+              <Button
+                onClick={() => {
+                  if (!manualRecipient.phone.trim()) {
+                    setSendState({
+                      type: "error",
+                      message: "Enter a phone number to start a conversation.",
+                    });
+                    return;
+                  }
+                  setSelectedRecipient({
+                    patientId: manualRecipient.patientId || undefined,
+                    patientName: manualRecipient.name || undefined,
+                    phoneNumber: manualRecipient.phone,
+                    location: manualRecipient.location || undefined,
+                    phScore: manualRecipient.patientId
+                      ? phScoreMap.get(manualRecipient.patientId)
+                      : undefined,
+                  });
+                  setSelectedThreadId(null);
+                  setSendState(null);
+                }}
+              >
+                Select patient
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card>
             <CardHeader className="flex flex-col gap-1">
               <CardTitle>Upcoming appointments</CardTitle>
               <CardDescription>
@@ -416,6 +529,7 @@ export default function MessagingPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               <textarea
+                suppressHydrationWarning
                 value={bulkTemplate}
                 onChange={(event) => setBulkTemplate(event.target.value)}
                 className="h-32 w-full rounded-md border bg-background px-3 py-2 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -536,6 +650,7 @@ export default function MessagingPage() {
 
               <div className="space-y-3">
                 <textarea
+                  suppressHydrationWarning
                   value={messageDraft}
                   onChange={(event) => setMessageDraft(event.target.value)}
                   placeholder={

@@ -124,6 +124,7 @@ export default function DashboardPage() {
                 Dataset
               </label>
               <select
+                suppressHydrationWarning
                 id="report-selector"
                 value={selectedReportKey}
                 onChange={(event) =>

@@ -84,3 +84,27 @@ Finally, redeploy Convex after updating secrets so the new schema and indexes ar
 ```
 npx convex deploy
 ```
+
+### Configure inbound webhooks
+
+To capture patient replies, create a RingCentral Event Subscription (message-store, SMS only) pointing to:
+
+```
+https://<your-dashboard-domain>/api/ringcentral/inbound
+```
+
+From the project root you can automate this via the helper script:
+
+```
+# Optionally set RINGCENTRAL_WEBHOOK_URL in .env.local
+npm run ringcentral:subscribe -- --webhook https://<your-dashboard-domain>/api/ringcentral/inbound
+```
+
+Use `--list` to inspect existing subscriptions and `--delete <id>` to remove one:
+
+```
+npm run ringcentral:subscribe -- --list
+npm run ringcentral:subscribe -- --delete <subscriptionId>
+```
+
+On the first handshake RingCentral sends a `Validation-Token` header; our route now echoes that header back, so the subscription should activate automatically. Once configured, inbound SMS records are written to Convex via `api.messaging.recordInboundMessage`, and threads in `/messaging` update as replies arrive.

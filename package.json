@@ -6,7 +6,8 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "convex:push": "npx convex dev --once",
-    "convex:ingest": "node scripts/ingest_report.js"
+    "convex:ingest": "node scripts/ingest_report.js",
+    "ringcentral:subscribe": "node scripts/register_ringcentral_subscription.js"
   },
   "keywords": [],
   "author": "",
