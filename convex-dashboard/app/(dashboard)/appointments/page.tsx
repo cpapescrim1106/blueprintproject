@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import useSWR from "swr";
 import {
   Card,
   CardContent,
@@ -14,15 +13,28 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group";
-import { WeeklyAppointmentsChart } from "@/components/WeeklyAppointmentsChart";
-import { CompletedAppointmentsLineChart } from "@/components/CompletedAppointmentsLineChart";
+import {
+  WeeklyAppointmentsChart,
+  type WeeklyBucket,
+} from "@/components/WeeklyAppointmentsChart";
+import {
+  CompletedAppointmentsLineChart,
+  type CompletedByYearData,
+} from "@/components/CompletedAppointmentsLineChart";
 import { CumulativeCompletedAppointmentsLineChart } from "@/components/CumulativeCompletedAppointmentsLineChart";
+import { jsonFetcher } from "@/lib/useJsonFetch";
 
 export default function AppointmentsPage() {
-  const activePatients = useQuery(api.reports.activePatientsKpi, {});
-  const weeklySummary = useQuery(api.reports.weeklyAppointmentSummary, {
-    weeks: 15,
-  });
+  const { data: activePatients } = useSWR<{ count: number }>(
+    "/api/reports/active-patients",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
+  const { data: weeklySummary } = useSWR<WeeklyBucket[]>(
+    "/api/reports/weekly-appointments?weeks=15",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
   const [completedFilter, setCompletedFilter] = useState<"all" | "new">("all");
   const completedArgs = useMemo(
     () => ({
@@ -30,9 +42,9 @@ export default function AppointmentsPage() {
     }),
     [completedFilter],
   );
-  const completedByYear = useQuery(
-    api.reports.completedAppointmentsByYear,
-    completedArgs,
+  const { data: completedByYear } = useSWR<CompletedByYearData>(
+    `/api/reports/completed-appointments?onlyNewPatients=${completedArgs.onlyNewPatients}`,
+    jsonFetcher,
   );
 
   return (

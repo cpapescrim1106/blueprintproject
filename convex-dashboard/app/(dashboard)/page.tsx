@@ -2,8 +2,7 @@
 
 import { useCallback, useState } from "react";
 import Link from "next/link";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import useSWR from "swr";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +18,7 @@ import {
   type ReportKey,
   type PipelineWindow,
 } from "@/lib/reportConfig";
+import { jsonFetcher } from "@/lib/useJsonFetch";
 
 export default function DashboardPage() {
   const [pendingRun, setPendingRun] = useState<
@@ -32,7 +32,11 @@ export default function DashboardPage() {
     REPORT_CONFIG_BY_KEY[selectedReportKey] ?? REPORT_CONFIGS[0];
   const reportLabel = selectedReport?.label ?? "Selected report";
 
-  const activePatients = useQuery(api.reports.activePatientsKpi, {});
+  const { data: activePatients } = useSWR<{ count: number }>(
+    "/api/reports/active-patients",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
   const isPendingShort =
     pendingRun?.reportKey === selectedReportKey &&
     pendingRun?.window === "short";

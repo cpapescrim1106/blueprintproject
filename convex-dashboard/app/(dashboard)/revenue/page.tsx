@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import useSWR from "swr";
 import {
   Card,
   CardContent,
@@ -13,11 +12,14 @@ import {
   QuarterlyRevenueChart,
   type QuarterlyDataset,
 } from "@/components/QuarterlyRevenueChart";
+import { jsonFetcher } from "@/lib/useJsonFetch";
 
 export default function RevenuePage() {
-  const quarterlyRevenue = useQuery(api.reports.quarterlySalesSummary, {}) as
-    | QuarterlyDataset
-    | undefined;
+  const { data: quarterlyRevenue } = useSWR<QuarterlyDataset>(
+    "/api/reports/quarterly-revenue",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
 
   return (
     <div className="bg-background text-foreground">

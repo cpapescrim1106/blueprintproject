@@ -12,7 +12,7 @@ import {
   YAxis,
 } from "recharts";
 
-type WeeklyBucket = {
+export type WeeklyBucket = {
   weekStart: number;
   weekEnd: number;
   completed: number;

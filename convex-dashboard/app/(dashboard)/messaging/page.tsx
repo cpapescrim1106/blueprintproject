@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useAction, useQuery } from "convex/react";
-import type { Id } from "@convex/_generated/dataModel";
-import { api } from "@convex/_generated/api";
+import useSWR from "swr";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { jsonFetcher } from "@/lib/useJsonFetch";
 
 type AgendaDay = {
   dateIso: string;
@@ -46,8 +45,7 @@ type Recipient = {
 type AgendaEntry = AgendaDay["entries"][number] | null;
 
 type MessageThread = {
-  _id: Id<"messageThreads">;
-  _creationTime?: number;
+  id: number;
   patientId?: string | null;
   patientName?: string | null;
   normalizedPhone: string;
@@ -62,8 +60,8 @@ type MessageThread = {
 };
 
 type ThreadMessage = {
-  _id: Id<"messages">;
-  threadId: Id<"messageThreads">;
+  id: number;
+  threadId: number;
   direction: "outbound" | "inbound";
   body: string;
   status?: string | null;
@@ -72,6 +70,10 @@ type ThreadMessage = {
   ringcentralId?: string | null;
   patientId?: string | null;
   error?: string | null;
+};
+
+type MessageThreadResponse = MessageThread & {
+  messages: ThreadMessage[];
 };
 
 const formatDateLabel = (iso: string | null | undefined) => {
@@ -91,50 +93,83 @@ const formatTimeLabel = (iso: string | null | undefined) => {
 };
 
 function useAgendaData(): AgendaResponse {
-  const agenda = useQuery(api.messaging.agenda, { days: 5 });
-  return agenda ?? { days: [], startDate: null, endDate: null };
+  const { data } = useSWR<AgendaResponse>(
+    "/api/reports/agenda?days=5",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
+  return data ?? { days: [], startDate: null, endDate: null };
 }
 
 function usePhScoreMap() {
-  const recallDetails = useQuery(api.reports.recallPatientDetails, {
-    limit: 400,
+  const { data } = useSWR<
+    Array<{ patientId?: string | null; phScore?: number | null }>
+  >("/api/reports/recall-details?limit=400", jsonFetcher, {
+    refreshInterval: 60_000,
   });
   return useMemo(() => {
     const map = new Map<string, number>();
-    if (!recallDetails) {
+    if (!data) {
       return map;
     }
-    for (const row of recallDetails) {
+    for (const row of data) {
       if (row.patientId && typeof row.phScore === "number") {
         map.set(row.patientId, row.phScore);
       }
     }
     return map;
-  }, [recallDetails]);
+  }, [data]);
 }
 
-function useRecentThreads(limit = 20): MessageThread[] {
-  const threads = useQuery(api.messaging.listThreads, { limit });
-  return (threads as MessageThread[] | undefined) ?? [];
-}
-
-function useThreadData(threadId: Id<"messageThreads"> | null) {
-  return useQuery(
-    api.messaging.getThread,
-    threadId ? { threadId } : "skip",
+function useRecentThreads(limit = 20) {
+  const { data, error, mutate } = useSWR<MessageThread[]>(
+    `/api/messaging/threads?limit=${limit}`,
+    jsonFetcher,
+    {
+      refreshInterval: 15_000,
+    },
   );
+  return {
+    threads: data ?? [],
+    mutate,
+    isLoading: !data && !error,
+    error,
+  };
+}
+
+function useThreadData(threadId: number | null) {
+  const { data, error, mutate } = useSWR<MessageThreadResponse | null>(
+    threadId ? `/api/messaging/thread?threadId=${threadId}` : null,
+    jsonFetcher,
+    {
+      refreshInterval: threadId ? 5_000 : 0,
+    },
+  );
+  return {
+    thread: data,
+    mutate,
+    isLoading: threadId ? !data && !error : false,
+    error,
+  };
 }
 
 function useThreadLookup(recipient: Recipient | null) {
-  return useQuery(
-    api.messaging.findThreadByPatient,
-    recipient
-      ? {
-          patientId: recipient.patientId,
-          phoneNumber: recipient.phoneNumber,
-        }
-      : "skip",
+  const params = new URLSearchParams();
+  if (recipient?.patientId) {
+    params.set("patientId", recipient.patientId);
+  }
+  if (recipient?.phoneNumber) {
+    params.set("phoneNumber", recipient.phoneNumber);
+  }
+  const key =
+    recipient && params.toString()
+      ? `/api/messaging/thread/lookup?${params.toString()}`
+      : null;
+  const { data, error } = useSWR<{ thread: MessageThread | null }>(
+    key,
+    jsonFetcher,
   );
+  return { thread: data?.thread ?? null, error };
 }
 
 const defaultReminderTemplate =
@@ -143,15 +178,12 @@ const defaultReminderTemplate =
 export default function MessagingPage() {
   const agenda = useAgendaData();
   const phScoreMap = usePhScoreMap();
-  const recentThreads = useRecentThreads();
-  const sendMessage = useAction(api.messaging.sendPatientMessage);
-  const sendBulkReminders = useAction(api.messaging.sendBulkReminders);
+  const { threads: recentThreads, mutate: mutateThreads } = useRecentThreads();
 
   const [selectedRecipient, setSelectedRecipient] = useState<Recipient | null>(
     null,
   );
-  const [selectedThreadId, setSelectedThreadId] =
-    useState<Id<"messageThreads"> | null>(null);
+  const [selectedThreadId, setSelectedThreadId] = useState<number | null>(null);
   const [messageDraft, setMessageDraft] = useState("");
   const [sendState, setSendState] = useState<
     null | { type: "success" | "error"; message: string }
@@ -167,16 +199,19 @@ export default function MessagingPage() {
     location: "",
   });
 
-  const lookedUpThread = useThreadLookup(selectedRecipient);
-  const threadData = useThreadData(
-    selectedThreadId ?? lookedUpThread?._id ?? null,
+  const { thread: lookedUpThread } = useThreadLookup(selectedRecipient);
+  const {
+    thread: threadData,
+    mutate: mutateThread,
+  } = useThreadData(
+    selectedThreadId ?? lookedUpThread?.id ?? null,
   );
 
   useEffect(() => {
-    if (lookedUpThread?._id) {
-      setSelectedThreadId(lookedUpThread._id);
+    if (lookedUpThread?.id) {
+      setSelectedThreadId(lookedUpThread.id);
     }
-  }, [lookedUpThread?._id]);
+  }, [lookedUpThread?.id]);
 
   const handleSelectAgendaEntry = (entry: AgendaEntry) => {
     if (!entry || entry.phoneNumbers.length === 0) {
@@ -196,15 +231,15 @@ export default function MessagingPage() {
     setSendState(null);
   };
 
-  const handleSelectThread = (threadId: Id<"messageThreads">) => {
+  const handleSelectThread = (threadId: number) => {
     const thread = recentThreads.find(
-      (item: MessageThread) => item._id === threadId,
+      (item: MessageThread) => item.id === threadId,
     );
     if (!thread) {
       setSelectedThreadId(threadId);
       return;
     }
-    setSelectedThreadId(thread._id);
+    setSelectedThreadId(thread.id);
     setSelectedRecipient({
       patientId: thread.patientId ?? undefined,
       patientName: thread.patientName ?? undefined,
@@ -234,19 +269,32 @@ export default function MessagingPage() {
     }
     setSendState(null);
     try {
-      const result = await sendMessage({
-        patientId: selectedRecipient.patientId,
-        patientName: selectedRecipient.patientName,
-        phoneNumber: selectedRecipient.phoneNumber,
-        messageBody: trimmed,
-        location: selectedRecipient.location,
-        phScore: selectedRecipient.phScore,
-        threadId: selectedThreadId ?? undefined,
+      const response = await fetch("/api/messaging/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          patientId: selectedRecipient.patientId,
+          patientName: selectedRecipient.patientName,
+          phoneNumber: selectedRecipient.phoneNumber,
+          messageBody: trimmed,
+          location: selectedRecipient.location,
+          phScore: selectedRecipient.phScore,
+          threadId: selectedThreadId ?? undefined,
+        }),
       });
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error ?? "Failed to send message.");
+      }
+      const result = (await response.json()) as { threadId: number | null };
       setMessageDraft("");
       if (result?.threadId) {
-        setSelectedThreadId(result.threadId as Id<"messageThreads">);
+        setSelectedThreadId(result.threadId);
       }
+      mutateThread();
+      mutateThreads();
       setSendState({
         type: "success",
         message: "Message sent successfully.",
@@ -301,14 +349,26 @@ export default function MessagingPage() {
     }
 
     try {
-      const summary = await sendBulkReminders({
-        template: bulkTemplate,
-        recipients,
+      const response = await fetch("/api/messaging/bulk", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          template: bulkTemplate,
+          recipients,
+        }),
       });
+      if (!response.ok) {
+        const errorBody = await response.json().catch(() => null);
+        throw new Error(errorBody?.error ?? "Failed to send reminders.");
+      }
+      const summary = await response.json();
       setBulkState({
         type: "success",
         message: `Reminders sent to ${summary.successful} patient(s).`,
       });
+      mutateThreads();
     } catch (error) {
       setBulkState({
         type: "error",
@@ -556,9 +616,9 @@ export default function MessagingPage() {
               ) : null}
               {recentThreads.map((thread) => (
                 <button
-                  key={thread._id}
+                  key={thread.id}
                   type="button"
-                  onClick={() => handleSelectThread(thread._id)}
+                  onClick={() => handleSelectThread(thread.id)}
                   className="w-full rounded-md border border-transparent bg-muted/30 px-3 py-2 text-left text-sm transition hover:border-primary hover:bg-muted"
                 >
                   <div className="flex items-center justify-between">
@@ -617,7 +677,7 @@ export default function MessagingPage() {
                   selectedThreadMessages.length > 0 ? (
                     selectedThreadMessages.map((message: ThreadMessage) => (
                       <div
-                        key={message._id}
+                        key={message.id}
                         className={`flex flex-col gap-1 ${message.direction === "outbound" ? "items-end text-right" : "items-start text-left"}`}
                       >
                         <div

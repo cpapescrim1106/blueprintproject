@@ -1,10 +1,9 @@
 "use client";
 
 import { format } from "date-fns";
-import type { Id } from "@convex/_generated/dataModel";
 
 type ScoreRow = {
-  _id?: Id<"activePatients">;
+  id?: number;
   patientId: string;
   patientName: string;
   firstName?: string;

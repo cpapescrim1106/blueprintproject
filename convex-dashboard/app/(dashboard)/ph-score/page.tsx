@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import useSWR from "swr";
 import { format } from "date-fns";
 import {
   Card,
@@ -11,7 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RecallsTable } from "@/components/RecallsTable";
+import { RecallsTable, type RecallDetail } from "@/components/RecallsTable";
+import { jsonFetcher } from "@/lib/useJsonFetch";
 
 type ScoreBucket = {
   key: string;
@@ -169,9 +169,11 @@ function ScoreList({
 }
 
 export default function PhScorePage() {
-  const details = useQuery(api.reports.recallPatientDetails, {
-    limit: 400,
-  });
+  const { data: details } = useSWR<RecallDetail[]>(
+    "/api/reports/recall-details?limit=400",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
 
   const phRows = useMemo(() => {
     if (!details) {

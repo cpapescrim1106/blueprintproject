@@ -64,6 +64,28 @@ The `/messaging` workspace adds two-way SMS support on top of the existing Bluep
 - One-to-one patient threads stored in new `messageThreads` / `messages` tables.
 - Bulk reminder sending with templates that accept `{name}`, `{date}`, `{time}`, and `{location}` tokens.
 
+### Local database (Prisma)
+
+Messaging data now lives in the SQLite database managed by Prisma.
+
+```
+cd convex-dashboard
+npx prisma migrate dev
+npx prisma studio # optional GUI
+```
+
+The database file is generated at `prisma/dev.db`. To point at Postgres or another host, update `prisma/.env` and re-run the migration.
+
+### Run the ingestion pipeline
+
+`scripts/run_report_pipeline.py` still orchestrates the replay/export step, but data now lands in Prisma via the updated Node helper. From the repo root:
+
+```
+node scripts/ingest_report.js --file exports/appointments.csv --report "Referral Source - Appointments"
+```
+
+The script automatically truncates the previous ingestion for the same `sourceKey`, writes raw rows to `prisma.reportRows`, and upserts canonical records into `appointments`, `patientRecalls`, `activePatients`, or `salesByIncomeAccount`. Inspect the new rows with `npx prisma studio` before launching the dashboard.
+
 ### Configure credentials
 
 Store the following secrets with `convex env set` (and in `.env.local` for local dev):

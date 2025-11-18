@@ -1,0 +1,125 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Ingestion {
+  id                   Int                    @id @default(autoincrement())
+  reportName           String
+  capturedAt           BigInt
+  sourceKey            String                 @unique
+  rowCount             Int
+  reportRows           ReportRow[]
+  appointments         Appointment[]
+  patientRecalls       PatientRecall[]
+  activePatients       ActivePatient[]
+  salesByIncomeAccounts SalesByIncomeAccount[]
+}
+
+model ReportRow {
+  id          Int      @id @default(autoincrement())
+  ingestion   Ingestion @relation(fields: [ingestionId], references: [id])
+  ingestionId Int
+  reportName  String
+  rowIndex    Int
+  data        Json
+}
+
+model Appointment {
+  id               Int       @id @default(autoincrement())
+  uniqueKey        String    @unique
+  reportName       String
+  patientId        String?
+  data             Json
+  firstCapturedAt  BigInt
+  lastCapturedAt   BigInt
+  ingestion        Ingestion @relation(fields: [lastIngestionId], references: [id])
+  lastIngestionId  Int
+}
+
+model PatientRecall {
+  id               Int       @id @default(autoincrement())
+  uniqueKey        String    @unique
+  reportName       String
+  patientId        String?
+  data             Json
+  firstCapturedAt  BigInt
+  lastCapturedAt   BigInt
+  ingestion        Ingestion @relation(fields: [lastIngestionId], references: [id])
+  lastIngestionId  Int
+}
+
+model ActivePatient {
+  id               Int       @id @default(autoincrement())
+  uniqueKey        String    @unique
+  reportName       String
+  patientId        String?
+  data             Json
+  firstCapturedAt  BigInt
+  lastCapturedAt   BigInt
+  ingestion        Ingestion @relation(fields: [lastIngestionId], references: [id])
+  lastIngestionId  Int
+}
+
+model SalesByIncomeAccount {
+  id               Int       @id @default(autoincrement())
+  uniqueKey        String    @unique
+  reportName       String
+  patientId        String?
+  data             Json
+  firstCapturedAt  BigInt
+  lastCapturedAt   BigInt
+  ingestion        Ingestion @relation(fields: [lastIngestionId], references: [id])
+  lastIngestionId  Int
+}
+
+model MessageThread {
+  id                Int        @id @default(autoincrement())
+  createdAt         DateTime   @default(now())
+  patientId         String?
+  patientName       String?
+  normalizedPhone   String
+  displayPhone      String?
+  location          String?
+  phScore           Float?
+  tags              Json?
+  lastMessageAt     BigInt
+  lastMessageSnippet String?
+  lastOutboundStatus String?
+  lastOutboundAt    BigInt?
+  messages          Message[]
+
+  @@index([normalizedPhone])
+  @@index([patientId])
+  @@index([lastMessageAt])
+}
+
+model Message {
+  id             Int           @id @default(autoincrement())
+  thread         MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+  threadId       Int
+  direction      MessageDirection
+  body           String
+  status         String?
+  sentAt         BigInt
+  normalizedPhone String?
+  ringcentralId  String?
+  patientId      String?
+  error          String?
+  createdAt      DateTime      @default(now())
+
+  @@index([threadId, sentAt])
+  @@index([ringcentralId])
+}
+
+enum MessageDirection {
+  outbound
+  inbound
+}

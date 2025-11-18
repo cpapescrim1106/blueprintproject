@@ -8,10 +8,9 @@ import {
   type ThHTMLAttributes,
 } from "react";
 import { cn } from "@/lib/utils";
-import type { Id } from "@convex/_generated/dataModel";
 
 type RecallDetailBase = {
-  _id?: Id<"patientRecalls">;
+  id?: number;
   patientId: string;
   patientName: string;
   location: string;
@@ -47,7 +46,7 @@ type RecallDetailBase = {
   phScoreBreakdown: unknown;
 };
 
-type RecallDetail = RecallDetailBase & {
+export type RecallDetail = RecallDetailBase & {
   phScore?: number;
   phScoreBreakdown?: unknown;
   patientAgeYears?: number | null;

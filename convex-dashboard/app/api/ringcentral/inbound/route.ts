@@ -1,20 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { ConvexHttpClient } from "convex/browser";
-import { api } from "@convex/_generated/api";
-
-const CONVEX_URL = process.env.CONVEX_URL;
-const CONVEX_DEPLOY_KEY = process.env.CONVEX_DEPLOY_KEY;
-
-if (!CONVEX_URL || !CONVEX_DEPLOY_KEY) {
-  console.warn(
-    "[ringcentral webhook] Convex server configuration incomplete. Set CONVEX_URL and CONVEX_DEPLOY_KEY.",
-  );
-}
-
-const convex =
-  CONVEX_URL && CONVEX_DEPLOY_KEY
-    ? new ConvexHttpClient(CONVEX_URL, { key: CONVEX_DEPLOY_KEY })
-    : null;
+import { recordInboundMessage } from "@/lib/messagingServer";
 
 const okResponse = (body?: unknown, headers?: HeadersInit) =>
   new NextResponse(body ? JSON.stringify(body) : null, {
@@ -48,10 +33,6 @@ type RingCentralPayload = {
 };
 
 async function handlePayload(payload: RingCentralPayload) {
-  if (!convex) {
-    throw new Error("Convex client unavailable");
-  }
-
   const records = payload?.body?.records ?? [];
   let processed = 0;
 
@@ -80,7 +61,7 @@ async function handlePayload(payload: RingCentralPayload) {
       ? new Date(record.creationTime).getTime()
       : Date.now();
 
-    await convex.mutation(api.messaging.recordInboundMessage, {
+    await recordInboundMessage({
       phoneNumber,
       body,
       receivedAt,

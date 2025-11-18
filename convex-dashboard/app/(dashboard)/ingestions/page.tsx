@@ -1,11 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
-import type { Id } from "@convex/_generated/dataModel";
-import type { FunctionReturnType } from "convex/server";
+import useSWR from "swr";
 import { Button } from "@/components/ui/button";
+import { jsonFetcher } from "@/lib/useJsonFetch";
 
 const formatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -20,42 +18,48 @@ function formatTimestamp(ms: number) {
   }
 }
 
-type Ingestion =
-  FunctionReturnType<typeof api.reports.listIngestions>[number];
+type Ingestion = {
+  id: number;
+  reportName: string;
+  capturedAt: bigint | number;
+  sourceKey: string;
+  rowCount: number;
+};
 
 type ReportRow = {
-  _id?: Id<"reportRows">;
-  _creationTime?: number;
+  id: number;
   reportName: string;
   rowIndex: number;
-  ingestionId?: Id<"ingestions">;
+  ingestionId: number;
   data: Record<string, string>;
 };
 
 export default function IngestionsPage() {
   const [reportFilter, setReportFilter] = useState("");
-  const [selectedIngestion, setSelectedIngestion] =
-    useState<Id<"ingestions"> | null>(null);
+  const [selectedIngestion, setSelectedIngestion] = useState<number | null>(null);
   const [pendingAction, setPendingAction] = useState<"refresh" | "full" | null>(
     null,
   );
   const [actionMessage, setActionMessage] = useState<string | null>(null);
   const [actionLog, setActionLog] = useState<string | null>(null);
 
-  const ingestions = useQuery(api.reports.listIngestions, {
-    reportName: reportFilter ? reportFilter : undefined,
-    limit: 100,
-  });
+  const { data: ingestions } = useSWR<Ingestion[]>(
+    `/api/reports/ingestions?limit=100${reportFilter ? `&reportName=${encodeURIComponent(reportFilter)}` : ""}`,
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
 
   useEffect(() => {
     if (ingestions && ingestions.length > 0) {
-      setSelectedIngestion((current) => current ?? ingestions[0]._id);
+      setSelectedIngestion((current) => current ?? ingestions[0].id);
     }
   }, [ingestions]);
 
-  const rows = useQuery(
-    api.reports.getRowsForIngestion,
-    selectedIngestion ? { ingestionId: selectedIngestion, limit: 200 } : "skip",
+  const { data: rows } = useSWR<ReportRow[]>(
+    selectedIngestion
+      ? `/api/reports/ingestion-rows?ingestionId=${selectedIngestion}&limit=200`
+      : null,
+    jsonFetcher,
   );
 
   const selected = useMemo<Ingestion | null>(() => {
@@ -64,7 +68,7 @@ export default function IngestionsPage() {
     }
     return (
       ingestions.find(
-        (ingestion: Ingestion) => ingestion._id === selectedIngestion,
+        (ingestion: Ingestion) => ingestion.id === selectedIngestion,
       ) ?? null
     );
   }, [ingestions, selectedIngestion]);
@@ -180,11 +184,11 @@ export default function IngestionsPage() {
                 </p>
               ) : (
                 ingestions.map((ingestion: Ingestion) => {
-                  const isActive = ingestion._id === selectedIngestion;
+                  const isActive = ingestion.id === selectedIngestion;
                   return (
                     <button
-                      key={ingestion._id}
-                      onClick={() => setSelectedIngestion(ingestion._id)}
+                      key={ingestion.id}
+                      onClick={() => setSelectedIngestion(ingestion.id)}
                       className={`flex w-full flex-col items-start gap-1 border-b px-3 py-2 text-left text-sm transition hover:bg-muted/60 ${isActive ? "bg-muted" : "bg-background"}`}
                     >
                       <span className="font-medium text-foreground">
@@ -194,7 +198,7 @@ export default function IngestionsPage() {
                         {ingestion.sourceKey}
                       </span>
                       <span className="text-xs text-muted-foreground">
-                        {ingestion.rowCount} rows · {formatTimestamp(ingestion.capturedAt)}
+                        {ingestion.rowCount.toLocaleString()} rows · {formatTimestamp(Number(ingestion.capturedAt))}
                       </span>
                     </button>
                   );
@@ -217,12 +221,12 @@ export default function IngestionsPage() {
                       </p>
                     </div>
                     <div className="text-xs text-muted-foreground">
-                      {formatTimestamp(selected.capturedAt)}
+                      {formatTimestamp(Number(selected.capturedAt))}
                     </div>
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {selected.rowCount.toLocaleString()} rows · ingestion ID{" "}
-                    {selected._id}
+                    {selected.id}
                   </div>
                 </header>
                 <div className="overflow-auto rounded-md border">
@@ -242,7 +246,7 @@ export default function IngestionsPage() {
                     <tbody className="divide-y divide-border bg-background">
                       {rows && rows.length > 0 ? (
                         rows.map((row: ReportRow, index: number) => (
-                          <tr key={row._id ?? index}>
+                          <tr key={row.id ?? index}>
                             {columns.map((column: string) => (
                               <td
                                 key={column}

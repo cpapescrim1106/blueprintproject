@@ -11,7 +11,7 @@ import {
   YAxis,
 } from "recharts";
 
-type CompletedByYearData = {
+export type CompletedByYearData = {
   maxMonthIndex: number;
   series: Array<{
     year: number;

@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@convex/_generated/api";
+import useSWR from "swr";
 import {
   Card,
   CardContent,
@@ -10,7 +9,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { RecallsTable } from "@/components/RecallsTable";
+import { RecallsTable, type RecallDetail } from "@/components/RecallsTable";
+import { jsonFetcher } from "@/lib/useJsonFetch";
 
 type SeriesPoint = {
   key: string;
@@ -110,10 +110,16 @@ function DistributionList({
 }
 
 export default function RecallsPage() {
-  const overview = useQuery(api.reports.recallOverview, {});
-  const details = useQuery(api.reports.recallPatientDetails, {
-    limit: 400,
-  });
+  const { data: overview } = useSWR<RecallOverview>(
+    "/api/reports/recall-overview",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
+  const { data: details } = useSWR<RecallDetail[]>(
+    "/api/reports/recall-details?limit=400",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
 
   const totals = useMemo(() => {
     if (!overview) {
