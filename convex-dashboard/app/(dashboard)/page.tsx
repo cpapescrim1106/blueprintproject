@@ -112,7 +112,7 @@ export default function DashboardPage() {
                 Blueprint Report Dashboard
               </h1>
               <p className="text-sm text-muted-foreground">
-                Replay reports, push results into Convex, and surface operational KPIs for the team.
+                Replay reports, push results into Prisma/Postgres, and surface operational KPIs for the team.
               </p>
               {selectedReport?.description ? (
                 <p className="text-xs text-muted-foreground">

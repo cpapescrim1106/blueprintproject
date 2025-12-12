@@ -165,6 +165,27 @@ const sendSms = async (toNumber: string, text: string) => {
   };
 };
 
+export async function fetchRingCentralMessage(messageId: string) {
+  if (!messageId) {
+    throw new Error("Message ID is required");
+  }
+  const config = getRingCentralConfig();
+  const accessToken = await getAccessToken();
+  const response = await fetch(
+    `${config.serverUrl}/restapi/v1.0/account/~/extension/~/message-store/${messageId}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    },
+  );
+  if (!response.ok) {
+    const text = await response.text();
+    throw new Error(`RingCentral fetch failed: ${text}`);
+  }
+  return response.json();
+}
+
 export async function ensureThread({
   patientId,
   patientName,
