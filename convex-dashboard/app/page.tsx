@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@convex/_generated/api";
 import type { Id } from "@convex/_generated/dataModel";
+import type { FunctionReturnType } from "convex/server";
 
 const formatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -18,7 +19,8 @@ function formatTimestamp(ms: number) {
   }
 }
 
-type Ingestion = Awaited<ReturnType<typeof api.reports.listIngestions>>[number];
+type Ingestion =
+  FunctionReturnType<typeof api.reports.listIngestions>[number];
 
 export default function DashboardPage() {
   const [reportFilter, setReportFilter] = useState("");

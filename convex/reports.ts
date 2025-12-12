@@ -8,11 +8,12 @@ export const listIngestions = query({
   },
   handler: async (ctx, args) => {
     const limit = args.limit ?? 20;
-    if (args.reportName) {
+    const reportName = args.reportName;
+    if (reportName) {
       return await ctx.db
         .query("ingestions")
         .withIndex("by_report_time", (q) =>
-          q.eq("reportName", args.reportName),
+          q.eq("reportName", reportName),
         )
         .order("desc")
         .take(limit);
