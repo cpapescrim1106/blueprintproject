@@ -19,6 +19,7 @@ import {
   type PipelineWindow,
 } from "@/lib/reportConfig";
 import { jsonFetcher } from "@/lib/useJsonFetch";
+import { siteConfig } from "@/lib/siteConfig";
 
 export default function DashboardPage() {
   const [pendingRun, setPendingRun] = useState<
@@ -109,7 +110,7 @@ export default function DashboardPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="flex flex-col gap-2">
               <h1 className="text-3xl font-semibold tracking-tight">
-                Blueprint Report Dashboard
+                {siteConfig.name} Dashboard
               </h1>
               <p className="text-sm text-muted-foreground">
                 Replay reports, push results into Prisma/Postgres, and surface operational KPIs for the team.

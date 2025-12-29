@@ -1,25 +1,31 @@
+-- CreateEnum
+CREATE TYPE "MessageDirection" AS ENUM ('outbound', 'inbound');
+
 -- CreateTable
 CREATE TABLE "Ingestion" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "reportName" TEXT NOT NULL,
     "capturedAt" BIGINT NOT NULL,
     "sourceKey" TEXT NOT NULL,
-    "rowCount" INTEGER NOT NULL
+    "rowCount" INTEGER NOT NULL,
+
+    CONSTRAINT "Ingestion_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ReportRow" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "ingestionId" INTEGER NOT NULL,
     "reportName" TEXT NOT NULL,
     "rowIndex" INTEGER NOT NULL,
     "data" JSONB NOT NULL,
-    CONSTRAINT "ReportRow_ingestionId_fkey" FOREIGN KEY ("ingestionId") REFERENCES "Ingestion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "ReportRow_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Appointment" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "uniqueKey" TEXT NOT NULL,
     "reportName" TEXT NOT NULL,
     "patientId" TEXT,
@@ -27,12 +33,13 @@ CREATE TABLE "Appointment" (
     "firstCapturedAt" BIGINT NOT NULL,
     "lastCapturedAt" BIGINT NOT NULL,
     "lastIngestionId" INTEGER NOT NULL,
-    CONSTRAINT "Appointment_lastIngestionId_fkey" FOREIGN KEY ("lastIngestionId") REFERENCES "Ingestion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "Appointment_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "PatientRecall" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "uniqueKey" TEXT NOT NULL,
     "reportName" TEXT NOT NULL,
     "patientId" TEXT,
@@ -40,12 +47,13 @@ CREATE TABLE "PatientRecall" (
     "firstCapturedAt" BIGINT NOT NULL,
     "lastCapturedAt" BIGINT NOT NULL,
     "lastIngestionId" INTEGER NOT NULL,
-    CONSTRAINT "PatientRecall_lastIngestionId_fkey" FOREIGN KEY ("lastIngestionId") REFERENCES "Ingestion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "PatientRecall_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "ActivePatient" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "uniqueKey" TEXT NOT NULL,
     "reportName" TEXT NOT NULL,
     "patientId" TEXT,
@@ -53,12 +61,13 @@ CREATE TABLE "ActivePatient" (
     "firstCapturedAt" BIGINT NOT NULL,
     "lastCapturedAt" BIGINT NOT NULL,
     "lastIngestionId" INTEGER NOT NULL,
-    CONSTRAINT "ActivePatient_lastIngestionId_fkey" FOREIGN KEY ("lastIngestionId") REFERENCES "Ingestion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "ActivePatient_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "SalesByIncomeAccount" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "uniqueKey" TEXT NOT NULL,
     "reportName" TEXT NOT NULL,
     "patientId" TEXT,
@@ -66,31 +75,34 @@ CREATE TABLE "SalesByIncomeAccount" (
     "firstCapturedAt" BIGINT NOT NULL,
     "lastCapturedAt" BIGINT NOT NULL,
     "lastIngestionId" INTEGER NOT NULL,
-    CONSTRAINT "SalesByIncomeAccount_lastIngestionId_fkey" FOREIGN KEY ("lastIngestionId") REFERENCES "Ingestion" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
+
+    CONSTRAINT "SalesByIncomeAccount_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "MessageThread" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "id" SERIAL NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "patientId" TEXT,
     "patientName" TEXT,
     "normalizedPhone" TEXT NOT NULL,
     "displayPhone" TEXT,
     "location" TEXT,
-    "phScore" REAL,
+    "phScore" DOUBLE PRECISION,
     "tags" JSONB,
     "lastMessageAt" BIGINT NOT NULL,
     "lastMessageSnippet" TEXT,
     "lastOutboundStatus" TEXT,
-    "lastOutboundAt" BIGINT
+    "lastOutboundAt" BIGINT,
+
+    CONSTRAINT "MessageThread_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "Message" (
-    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "id" SERIAL NOT NULL,
     "threadId" INTEGER NOT NULL,
-    "direction" TEXT NOT NULL,
+    "direction" "MessageDirection" NOT NULL,
     "body" TEXT NOT NULL,
     "status" TEXT,
     "sentAt" BIGINT NOT NULL,
@@ -98,9 +110,13 @@ CREATE TABLE "Message" (
     "ringcentralId" TEXT,
     "patientId" TEXT,
     "error" TEXT,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "Message_threadId_fkey" FOREIGN KEY ("threadId") REFERENCES "MessageThread" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Message_pkey" PRIMARY KEY ("id")
 );
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Ingestion_sourceKey_key" ON "Ingestion"("sourceKey");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Appointment_uniqueKey_key" ON "Appointment"("uniqueKey");
@@ -128,3 +144,21 @@ CREATE INDEX "Message_threadId_sentAt_idx" ON "Message"("threadId", "sentAt");
 
 -- CreateIndex
 CREATE INDEX "Message_ringcentralId_idx" ON "Message"("ringcentralId");
+
+-- AddForeignKey
+ALTER TABLE "ReportRow" ADD CONSTRAINT "ReportRow_ingestionId_fkey" FOREIGN KEY ("ingestionId") REFERENCES "Ingestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Appointment" ADD CONSTRAINT "Appointment_lastIngestionId_fkey" FOREIGN KEY ("lastIngestionId") REFERENCES "Ingestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "PatientRecall" ADD CONSTRAINT "PatientRecall_lastIngestionId_fkey" FOREIGN KEY ("lastIngestionId") REFERENCES "Ingestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "ActivePatient" ADD CONSTRAINT "ActivePatient_lastIngestionId_fkey" FOREIGN KEY ("lastIngestionId") REFERENCES "Ingestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "SalesByIncomeAccount" ADD CONSTRAINT "SalesByIncomeAccount_lastIngestionId_fkey" FOREIGN KEY ("lastIngestionId") REFERENCES "Ingestion"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Message" ADD CONSTRAINT "Message_threadId_fkey" FOREIGN KEY ("threadId") REFERENCES "MessageThread"("id") ON DELETE CASCADE ON UPDATE CASCADE;

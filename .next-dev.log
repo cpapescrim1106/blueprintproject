@@ -1,0 +1,27 @@
+
+> convex-dashboard@0.1.0 dev:frontend
+> next dev --turbopack --hostname 127.0.0.1 --port 3100
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /home/cpape/package-lock.json as the root directory.
+ To silence this warning, set `turbopack.root` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/turbopack#root-directory for more information.
+ Detected additional lockfiles: 
+   * /home/cpape/workspace/dev/personal/blueprint project/convex-dashboard/package-lock.json
+   * /home/cpape/workspace/dev/personal/blueprint project/package-lock.json
+
+   ▲ Next.js 15.5.4 (Turbopack)
+   - Local:        http://127.0.0.1:3100
+   - Network:      http://127.0.0.1:3100
+   - Environments: .env.local
+   - Experiments (use with caution):
+     ✓ externalDir
+
+ ✓ Starting...
+ ✓ Ready in 879ms
+ ○ Compiling /api/reports/ingestions ...
+ ✓ Compiled /api/reports/ingestions in 1195ms
+ GET /api/reports/ingestions 200 in 1658ms
+ ○ Compiling /_not-found/page ...
+ ✓ Compiled /_not-found/page in 1716ms
+ GET /metrics 404 in 1989ms

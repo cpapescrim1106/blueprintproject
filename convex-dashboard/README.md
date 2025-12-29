@@ -1,4 +1,4 @@
-# Blueprint Reporting Dashboard (Next.js + Prisma)
+# Blueprint Project Reporting Dashboard (Next.js + Prisma)
 
 - Next.js 15 + shadcn UI
 - Prisma for data access (SQLite locally by default; Postgres recommended for production)
@@ -12,11 +12,11 @@ npm install
 npm run dev
 ```
 
-Prisma uses `prisma/dev.db` in this workspace unless you override `DATABASE_URL`. Run `npx prisma migrate dev` before first boot. If you want to disable the Turbopack root warning, align lockfiles or set `turbopack.root` in `next.config.ts`.
+Prisma now targets Postgres. Copy `env.example` to `.env.local` and ensure `DATABASE_URL` points at your instance (the repo ships with a docker-compose service on port `55432`). Run `docker compose up -d postgres` from the repo root, then apply migrations with `DATABASE_URL=postgresql://blueprint:blueprint@localhost:55432/blueprint?schema=public npx prisma migrate deploy`. If you want to disable the Turbopack root warning, align lockfiles or set `turbopack.root` in `next.config.ts`.
 
 ## Patient Messaging via RingCentral
 
-The `/messaging` workspace adds two-way SMS support on top of the existing Blueprint dashboards:
+The `/messaging` workspace adds two-way SMS support on top of the Blueprint project dashboards:
 
 - A five-day appointment agenda sourced from Convex ingestion tables.
 - One-to-one patient threads stored in new `messageThreads` / `messages` tables.
@@ -24,15 +24,15 @@ The `/messaging` workspace adds two-way SMS support on top of the existing Bluep
 
 ### Local database (Prisma)
 
-Messaging data now lives in the SQLite database managed by Prisma.
+Messaging data now lives in Postgres (managed by Prisma). Start the bundled database with `docker compose up -d postgres` from the repo root, then apply migrations:
 
 ```
 cd convex-dashboard
-npx prisma migrate dev
+npm run db:migrate
 npx prisma studio # optional GUI
 ```
 
-The database file is generated at `prisma/dev.db`. To point at Postgres or another host, update `prisma/.env` and re-run the migration.
+Set `DATABASE_URL` in `.env.local` (see `env.example`) if you want to point at a different Postgres host.
 
 ### Run the ingestion pipeline
 
@@ -70,14 +70,14 @@ npx convex deploy
 To capture patient replies, create a RingCentral Event Subscription (message-store, SMS only) pointing to:
 
 ```
-https://<your-dashboard-domain>/api/ringcentral/inbound
+https://blueprintproject.scrimvivbes.xyz/api/ringcentral/inbound
 ```
 
 From the project root you can automate this via the helper script:
 
 ```
 # Optionally set RINGCENTRAL_WEBHOOK_URL in .env.local
-npm run ringcentral:subscribe -- --webhook https://<your-dashboard-domain>/api/ringcentral/inbound
+npm run ringcentral:subscribe -- --webhook https://blueprintproject.scrimvivbes.xyz/api/ringcentral/inbound
 ```
 
 Use `--list` to inspect existing subscriptions and `--delete <id>` to remove one:
@@ -88,3 +88,9 @@ npm run ringcentral:subscribe -- --delete <subscriptionId>
 ```
 
 On the first handshake RingCentral sends a `Validation-Token` header; our route now echoes that header back, so the subscription should activate automatically. Once configured, inbound SMS records are written to Convex via `api.messaging.recordInboundMessage`, and threads in `/messaging` update as replies arrive.
+
+### DNS + TLS for blueprintproject.scrimvivbes.xyz
+
+1. Add a CNAME (or ALIAS/ANAME if your provider requires it) for `blueprintproject.scrimvivbes.xyz` that points at the host serving this Next.js app (Vercel, Cloudflare Pages, custom Nginx, etc.).
+2. Ensure the hosting provider issues an HTTPS certificate for the new subdomain; most managed platforms do this automatically once the DNS record resolves.
+3. Redeploy the dashboard so the public URL matches the new hostname and verify that `https://blueprintproject.scrimvivbes.xyz` loads without certificate warnings.

@@ -41,3 +41,13 @@ This folder archives the mitmproxy capture we just performed against the Bluepri
 - `scripts/replay_reports.py` wraps the captured queue payloads. Use `--mode offline` (default) to inspect and decompress the saved S3 artefacts without touching AWS. Pass `--decompress` to emit `.jrprint` files and `--jasperstarter` with `--export-format` once you provide a JasperReports CLI.
 - `scripts/replay_reports.py --list-reports` enumerates the report catalogue we grabbed from S3 so you can choose meaningful names when replaying.
 - Modules under `blueprint_exporter/` expose helpers for reading the capture (`payloads`, `catalog`), pushing jobs (`sqs_replay`), downloading results (`s3_download`), and handling JasperPrint payloads (`jasper`).
+
+## Backend quick start
+
+1. Copy `env.example` to `.env.local` and fill in AWS + Convex credentials. The default `DATABASE_URL` points at the bundled Postgres container (`localhost:55432`).
+2. Boot the database with `docker compose up -d postgres`.
+3. Install dashboard deps (`cd convex-dashboard && npm install`) and apply Prisma migrations via `DATABASE_URL=... npx prisma migrate deploy`.
+4. Run `node scripts/ingest_report.js --file <csv> --report "<name>"` to populate Postgres, then `npm run dev` inside `convex-dashboard` to view the KPIs.
+5. Redeploy Convex with `npm run convex:push` after adding new functions or schema changes.
+
+See `docs/deployment.md` for the full local-to-production deployment checklist.

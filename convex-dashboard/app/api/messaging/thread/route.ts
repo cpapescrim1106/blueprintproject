@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     lastOutboundAt: thread.lastOutboundAt
       ? Number(thread.lastOutboundAt)
       : null,
-    messages: thread.messages.map((message) => ({
+    messages: thread.messages.map((message: (typeof thread.messages)[number]) => ({
       ...message,
       sentAt: Number(message.sentAt),
     })),

@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { siteConfig } from "@/lib/siteConfig";
 
 type NavItem = {
   href: string;
@@ -40,7 +41,7 @@ export function SidebarNav() {
           href="/"
           className="text-sm font-semibold tracking-tight text-foreground"
         >
-          Blueprint Ops
+          {siteConfig.name}
         </Link>
         <ThemeToggle />
       </div>
