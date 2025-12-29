@@ -679,7 +679,7 @@ export async function recallPatientDetails({
   }
 
   const todayMs = today.getTime();
-  const details = recallData.map((recall) => {
+  const details = recallData.map((recall: (typeof recallData)[number]) => {
     const data = recall.data;
     const patientId = (data["Patient ID"] ?? "").toString().trim();
     const patientName = (data["Patient"] ?? "").toString().trim();
