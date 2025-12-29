@@ -143,7 +143,7 @@ export async function listIngestions({
     orderBy: { capturedAt: "desc" },
     take: limit,
   });
-  return rows.map((row) => ({
+  return rows.map((row: (typeof rows)[number]) => ({
     id: row.id,
     reportName: row.reportName,
     capturedAt: Number(row.capturedAt),
@@ -164,7 +164,7 @@ export async function getRowsForIngestion({
     orderBy: { rowIndex: "asc" },
     take: limit,
   });
-  return rows.map((row) => ({
+  return rows.map((row: (typeof rows)[number]) => ({
     id: row.id,
     ingestionId: row.ingestionId,
     reportName: row.reportName,
