@@ -7,7 +7,7 @@ export async function GET(request: NextRequest) {
   const limit = limitParam ? Number(limitParam) : 20;
   const threads = await listThreads(Number.isNaN(limit) ? 20 : limit);
   return NextResponse.json(
-    threads.map((thread) => ({
+    threads.map((thread: (typeof threads)[number]) => ({
       ...thread,
       lastMessageAt: Number(thread.lastMessageAt ?? 0),
       lastOutboundAt: thread.lastOutboundAt
