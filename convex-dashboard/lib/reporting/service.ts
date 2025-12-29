@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import prisma from "@/lib/prisma";
 import { calculatePhScore } from "@/lib/patientScore";
 import {
@@ -16,7 +15,7 @@ import {
 
 const DEFAULT_APPOINTMENT_REPORT = "Referral Source - Appointments";
 
-const serializeJson = (value: Prisma.JsonValue): JsonRecord => toRecord(value);
+const serializeJson = (value: unknown): JsonRecord => toRecord(value);
 
 type RecallStatusKey =
   | "new"

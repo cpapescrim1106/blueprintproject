@@ -1,11 +1,17 @@
-import type { Prisma } from "@prisma/client";
-
 export const MS_PER_DAY = 24 * 60 * 60 * 1000;
 export const MS_PER_WEEK = MS_PER_DAY * 7;
 
 export type JsonRecord = Record<string, string>;
 
-export const toRecord = (value: Prisma.JsonValue | null): JsonRecord => {
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonValue[]
+  | { [key: string]: JsonValue };
+
+export const toRecord = (value: unknown): JsonRecord => {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return {};
   }
