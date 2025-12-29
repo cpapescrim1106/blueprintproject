@@ -540,7 +540,7 @@ export async function recallPatientDetails({
     take: limit,
   });
 
-  const recallData = recalls.map((row) => ({
+  const recallData = recalls.map((row: (typeof recalls)[number]) => ({
     id: row.id,
     reportName: row.reportName,
     data: serializeJson(row.data),
