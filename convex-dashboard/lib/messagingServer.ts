@@ -1,5 +1,4 @@
 import prisma from "@/lib/prisma";
-import type { Message, MessageThread } from "@prisma/client";
 
 type SendMessageRequest = {
   patientId?: string;
@@ -18,10 +17,6 @@ type BulkRecipient = {
   appointmentIso?: string | null;
   location?: string;
   phScore?: number;
-};
-
-export type MessageThreadResponse = MessageThread & {
-  messages: Message[];
 };
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
