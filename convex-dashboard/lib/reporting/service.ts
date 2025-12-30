@@ -880,14 +880,14 @@ export async function agenda({
   };
 
   const agendaEntries = appointments
-    .map((doc) => buildEntry(serializeJson(doc.data)))
+    .map((doc: (typeof appointments)[number]) => buildEntry(serializeJson(doc.data)))
     .filter(
-      (entry) =>
+      (entry: ReturnType<typeof buildEntry>) =>
         entry.appointmentMs !== null &&
         entry.appointmentMs >= startDate.getTime() &&
         entry.appointmentMs < endDate.getTime(),
     )
-    .sort((a, b) => {
+    .sort((a: ReturnType<typeof buildEntry>, b: ReturnType<typeof buildEntry>) => {
       const aMs = a.appointmentMs ?? Number.MAX_SAFE_INTEGER;
       const bMs = b.appointmentMs ?? Number.MAX_SAFE_INTEGER;
       return aMs - bMs;
