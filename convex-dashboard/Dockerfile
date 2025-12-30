@@ -50,12 +50,17 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/package.json ./package.json
 RUN npm install --omit=dev prisma
 
+# Copy startup script (adjust path if building from repo root)
+COPY --chown=nextjs:nodejs start.sh ./start.sh
+RUN chmod +x start.sh || chmod +x ./start.sh || true
+
 USER nextjs
 
 EXPOSE 3000
 
+# Default PORT if not set by Coolify
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Run database migrations and start the server
-CMD ["sh", "-c", "npx prisma migrate deploy && node server.js"]
+CMD ["./start.sh"]
