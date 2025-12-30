@@ -18,7 +18,7 @@ Prisma now targets Postgres. Copy `env.example` to `.env.local` and ensure `DATA
 
 The `/messaging` workspace adds two-way SMS support on top of the Blueprint project dashboards:
 
-- A five-day appointment agenda sourced from Convex ingestion tables.
+- A five-day appointment agenda sourced from Prisma database tables.
 - One-to-one patient threads stored in new `messageThreads` / `messages` tables.
 - Bulk reminder sending with templates that accept `{name}`, `{date}`, `{time}`, and `{location}` tokens.
 
@@ -46,7 +46,7 @@ The script automatically truncates the previous ingestion for the same `sourceKe
 
 ### Configure credentials
 
-Store the following secrets with `convex env set` (and in `.env.local` for local dev):
+Store the following secrets in `.env.local` for local dev (or in your deployment environment):
 
 ```
 RINGCENTRAL_CLIENT_ID=...
@@ -58,12 +58,6 @@ RINGCENTRAL_SERVER_URL=https://platform.ringcentral.com
 ```
 
 > Ensure `RINGCENTRAL_FROM_NUMBER` is SMS-enabled. Rotate JWT tokens regularly.
-
-Finally, redeploy Convex after updating secrets so the new schema and indexes are applied:
-
-```
-npx convex deploy
-```
 
 ### Configure inbound webhooks
 
@@ -87,7 +81,7 @@ npm run ringcentral:subscribe -- --list
 npm run ringcentral:subscribe -- --delete <subscriptionId>
 ```
 
-On the first handshake RingCentral sends a `Validation-Token` header; our route now echoes that header back, so the subscription should activate automatically. Once configured, inbound SMS records are written to Convex via `api.messaging.recordInboundMessage`, and threads in `/messaging` update as replies arrive.
+On the first handshake RingCentral sends a `Validation-Token` header; our route now echoes that header back, so the subscription should activate automatically. Once configured, inbound SMS records are written to Prisma via the API route, and threads in `/messaging` update as replies arrive.
 
 ### DNS + TLS for blueprintproject.scrimvivbes.xyz
 

@@ -7,10 +7,10 @@ Replace the current “Patient Recalls” CSV/report ingestion pipeline with a l
 1. **Runtime bridge**
    - Stand up a headless JVM helper that boots the captured OMS client runtime, logs in via `OMSController`, and keeps the session alive.
    - Use the existing shaded Spring stack (`org.springframework.remoting.b.*`, `com.blueprint.oms.b.b`, etc.) so we can call `OMSService` methods like `getClientRecallList` and `updateClientRecalls`.
-   - Expose the helper through a local CLI/HTTP bridge that the Convex/Next backend can call.
+   - Expose the helper through a local CLI/HTTP bridge that the Next.js backend can call.
 2. **Backend wiring**
    - Replace report parsing for operational data with live `getClientRecallList` / `getClientRecallByRecallId`.
-   - Keep the report-derived performance metrics (completion counts, revenue, device age) by continuing to ingest the CSVs on a schedule and storing them in Convex keyed by recall/patient id.
+   - Keep the report-derived performance metrics (completion counts, revenue, device age) by continuing to ingest the CSVs on a schedule and storing them in Prisma/PostgreSQL keyed by recall/patient id.
    - Provide mutation endpoints that take a recall id (or list), look up the latest DTO from the helper, patch the necessary fields (`recallDate`, `cancelReasonId`, etc.), and send them back through `updateClientRecalls`.
 3. **Frontend updates**
    - In the Patient Recall roster, display both the live recall fields and the stored metrics.

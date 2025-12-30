@@ -4,6 +4,7 @@ const nextConfig: NextConfig = {
   experimental: {
     externalDir: true,
   },
+  output: "standalone",
 };
 
 export default nextConfig;

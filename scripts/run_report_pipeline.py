@@ -3,7 +3,7 @@
 End-to-end helper that:
   1. Replays a report via scripts/replay_reports.py (live or offline).
   2. Converts the resulting JRPrint to CSV using ReportExporter.
-  3. Uploads the CSV to Convex via scripts/ingest_report.js.
+  3. Uploads the CSV to Prisma via scripts/ingest_report.js.
 
 Example:
   python scripts/run_report_pipeline.py --report-name "Referral Source - Appointments"

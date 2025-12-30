@@ -44,10 +44,9 @@ This folder archives the mitmproxy capture we just performed against the Bluepri
 
 ## Backend quick start
 
-1. Copy `env.example` to `.env.local` and fill in AWS + Convex credentials. The default `DATABASE_URL` points at the bundled Postgres container (`localhost:55432`).
+1. Copy `env.example` to `.env.local` and fill in AWS credentials. The default `DATABASE_URL` points at the bundled Postgres container (`localhost:55432`).
 2. Boot the database with `docker compose up -d postgres`.
 3. Install dashboard deps (`cd convex-dashboard && npm install`) and apply Prisma migrations via `DATABASE_URL=... npx prisma migrate deploy`.
 4. Run `node scripts/ingest_report.js --file <csv> --report "<name>"` to populate Postgres, then `npm run dev` inside `convex-dashboard` to view the KPIs.
-5. Redeploy Convex with `npm run convex:push` after adding new functions or schema changes.
 
 See `docs/deployment.md` for the full local-to-production deployment checklist.
