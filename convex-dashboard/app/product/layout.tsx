@@ -1,5 +1,5 @@
 import { cn } from "@/lib/utils";
-import { ChatBubbleIcon, HomeIcon, ReaderIcon } from "@radix-ui/react-icons";
+import { ChatBubbleIcon, HomeIcon } from "@radix-ui/react-icons";
 import Link from "next/link";
 import { ReactNode } from "react";
 

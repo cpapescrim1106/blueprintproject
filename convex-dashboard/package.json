@@ -5,9 +5,13 @@
   "scripts": {
     "dev": "npm run dev:frontend",
     "dev:frontend": "next dev --turbopack",
-    "build": "next build",
+    "build": "npm run type-check && npm run lint && next build",
+    "build:skip-checks": "next build",
     "start": "next start",
     "lint": "next lint",
+    "type-check": "tsc --noEmit",
+    "type-check:watch": "tsc --noEmit --watch",
+    "check": "npm run type-check && npm run lint",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push"
   },

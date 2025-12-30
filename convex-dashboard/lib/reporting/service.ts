@@ -795,7 +795,7 @@ export async function recallPatientDetails({
     };
   });
 
-  details.sort((a, b) => {
+  details.sort((a: (typeof details)[number], b: (typeof details)[number]) => {
     const aDate = a.recallDateMs ?? Number.MAX_SAFE_INTEGER;
     const bDate = b.recallDateMs ?? Number.MAX_SAFE_INTEGER;
     if (aDate !== bDate) {
