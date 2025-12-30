@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "npm run dev:frontend",
     "dev:frontend": "next dev --turbopack",
-    "build": "npm run type-check && npm run lint && next build",
-    "build:skip-checks": "next build",
+    "build": "DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy prisma generate && npm run type-check && npm run lint && next build",
+    "build:skip-checks": "DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy prisma generate && next build",
+    "build:clean": "rm -rf node_modules/.prisma node_modules/@prisma/client .next && npm run build",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit",
     "type-check:watch": "tsc --noEmit --watch",
     "check": "npm run type-check && npm run lint",
+    "pre-deploy": "npm run build:clean",
     "db:migrate": "prisma migrate deploy",
     "db:push": "prisma db push"
   },

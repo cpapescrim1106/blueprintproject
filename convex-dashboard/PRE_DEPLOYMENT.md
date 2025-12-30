@@ -2,20 +2,48 @@
 
 Before deploying to Coolify, run these checks locally to catch TypeScript and linting errors:
 
-## Quick Check (Recommended)
+## ⚠️ IMPORTANT: Why Local Builds Can Pass But Deployments Fail
 
-Run all checks at once:
+**The Problem:** Your local environment may have generated files (like Prisma Client) from previous runs. These files won't exist in a fresh deployment environment, causing builds to fail even though they passed locally.
+
+**The Solution:** Always run `npm run build:clean` before deploying to simulate a fresh environment.
+
+## Recommended: Clean Build Check
+
+**Always run this before deploying:**
+```bash
+cd convex-dashboard
+npm run build:clean
+```
+
+Or use the pre-deploy script:
+```bash
+npm run pre-deploy
+```
+
+This will:
+1. 🧹 Clean all generated files (Prisma Client, Next.js build cache)
+2. ✅ Generate Prisma Client from scratch
+3. ✅ Run TypeScript type checking (`type-check`)
+4. ✅ Run ESLint (`lint`)
+5. ✅ Build the Next.js application (`next build`)
+
+If any step fails, fix the errors before deploying.
+
+## Quick Check (May Miss Issues)
+
 ```bash
 cd convex-dashboard
 npm run build
 ```
 
 This will:
-1. ✅ Run TypeScript type checking (`type-check`)
-2. ✅ Run ESLint (`lint`)
-3. ✅ Build the Next.js application (`next build`)
+1. ✅ Generate Prisma Client (if missing)
+2. ✅ Run TypeScript type checking (`type-check`)
+3. ✅ Run ESLint (`lint`)
+4. ✅ Build the Next.js application (`next build`)
 
-If any step fails, fix the errors before deploying.
+**Warning:** This may pass even if deployment fails if Prisma Client already exists locally.
 
 ## Individual Checks
 
