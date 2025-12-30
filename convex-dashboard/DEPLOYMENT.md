@@ -2,6 +2,15 @@
 
 This guide covers deploying the Blueprint Dashboard to Coolify.
 
+## Production Triage Checklist
+
+Use this when a deployment refuses to boot or Coolify reports health‑check failures.
+
+1. **Missing `DATABASE_URL`** – Prisma will crash before Next.js starts if this env var is unset. In Coolify → Environment Variables add  
+   `DATABASE_URL=postgresql://username:password@your-db-host:5432/your-database?schema=public`. Save and redeploy.
+2. **Wrong build pack** – Coolify defaults to Nixpacks. Switch Build Pack to **Docker**, set **Base Directory** to `/convex-dashboard`, and point the Dockerfile field at `convex-dashboard/Dockerfile`. Clear any custom Install/Build/Start commands so Coolify lets Docker handle the lifecycle.
+3. **Check the logs tab** – `Logs → Build` shows Docker build failures (e.g., Prisma errors when `DATABASE_URL` is missing). `Logs → Application` shows runtime issues such as Postgres auth failures. Copy the exact error before changing settings.
+
 ## Prerequisites
 
 1. **Database**: PostgreSQL database (can be provisioned via Coolify or external)
@@ -13,9 +22,11 @@ This guide covers deploying the Blueprint Dashboard to Coolify.
 
 ### Build Settings
 
-- **Build Pack**: Docker
+- **Build Pack**: Docker (Nixpacks will not run the multi-stage Dockerfile)
+- **Base Directory**: `/convex-dashboard`
 - **Dockerfile Path**: `convex-dashboard/Dockerfile`
-- **Build Context**: `convex-dashboard/` (or root if building from repo root)
+- **Build Context**: Repo root (Coolify auto-prepends the Base Directory)
+- **Install/Build/Start commands**: leave blank so Docker controls the steps
 - **Port**: `3000` (Coolify will handle port mapping)
 
 ### Environment Variables
@@ -26,6 +37,8 @@ Required environment variables to set in Coolify:
 DATABASE_URL=postgresql://user:password@host:5432/database?schema=public
 NODE_ENV=production
 ```
+
+> `DATABASE_URL` must point at the same Postgres instance that already has the Prisma migrations applied. Use a managed database in Coolify or an external cluster and confirm credentials manually before redeploying.
 
 Optional environment variables (if using RingCentral messaging):
 
@@ -82,4 +95,3 @@ After successful deployment:
 1. Verify database migrations ran successfully (check logs)
 2. Test the application at the provided URL
 3. Check that API routes are responding correctly
-

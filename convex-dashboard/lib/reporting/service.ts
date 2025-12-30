@@ -12,6 +12,12 @@ import {
   startOfWeekMonday,
   toRecord,
 } from "./utils";
+import type {
+  Ingestion,
+  ReportRow,
+  Appointment,
+  PatientRecall,
+} from "@prisma/client";
 
 const DEFAULT_APPOINTMENT_REPORT = "Referral Source - Appointments";
 
@@ -138,12 +144,12 @@ export async function listIngestions({
   reportName?: string;
   limit?: number;
 }) {
-  const rows = await prisma.ingestion.findMany({
+  const rows: Ingestion[] = await prisma.ingestion.findMany({
     where: reportName ? { reportName } : undefined,
     orderBy: { capturedAt: "desc" },
     take: limit,
   });
-  return rows.map((row: (typeof rows)[number]) => ({
+  return rows.map((row: Ingestion) => ({
     id: row.id,
     reportName: row.reportName,
     capturedAt: Number(row.capturedAt),
@@ -159,12 +165,12 @@ export async function getRowsForIngestion({
   ingestionId: number;
   limit?: number;
 }) {
-  const rows = await prisma.reportRow.findMany({
+  const rows: ReportRow[] = await prisma.reportRow.findMany({
     where: { ingestionId },
     orderBy: { rowIndex: "asc" },
     take: limit,
   });
-  return rows.map((row: (typeof rows)[number]) => ({
+  return rows.map((row: ReportRow) => ({
     id: row.id,
     ingestionId: row.ingestionId,
     reportName: row.reportName,
@@ -540,7 +546,7 @@ export async function recallPatientDetails({
     take: limit,
   });
 
-  const recallData = recalls.map((row: (typeof recalls)[number]) => ({
+  const recallData = recalls.map((row: PatientRecall) => ({
     id: row.id,
     reportName: row.reportName,
     data: serializeJson(row.data),
@@ -679,7 +685,8 @@ export async function recallPatientDetails({
   }
 
   const todayMs = today.getTime();
-  const details = recallData.map((recall: (typeof recallData)[number]) => {
+  type RecallDataItem = { id: number; reportName: string; data: JsonRecord };
+  const details = recallData.map((recall: RecallDataItem) => {
     const data = recall.data;
     const patientId = (data["Patient ID"] ?? "").toString().trim();
     const patientName = (data["Patient"] ?? "").toString().trim();
@@ -795,7 +802,7 @@ export async function recallPatientDetails({
     };
   });
 
-  details.sort((a: (typeof details)[number], b: (typeof details)[number]) => {
+  details.sort((a, b) => {
     const aDate = a.recallDateMs ?? Number.MAX_SAFE_INTEGER;
     const bDate = b.recallDateMs ?? Number.MAX_SAFE_INTEGER;
     if (aDate !== bDate) {
@@ -880,14 +887,14 @@ export async function agenda({
   };
 
   const agendaEntries = appointments
-    .map((doc: (typeof appointments)[number]) => buildEntry(serializeJson(doc.data)))
+    .map((doc: Appointment) => buildEntry(serializeJson(doc.data)))
     .filter(
-      (entry: ReturnType<typeof buildEntry>) =>
+      (entry) =>
         entry.appointmentMs !== null &&
         entry.appointmentMs >= startDate.getTime() &&
         entry.appointmentMs < endDate.getTime(),
     )
-    .sort((a: ReturnType<typeof buildEntry>, b: ReturnType<typeof buildEntry>) => {
+    .sort((a, b) => {
       const aMs = a.appointmentMs ?? Number.MAX_SAFE_INTEGER;
       const bMs = b.appointmentMs ?? Number.MAX_SAFE_INTEGER;
       return aMs - bMs;
