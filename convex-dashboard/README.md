@@ -64,14 +64,14 @@ RINGCENTRAL_SERVER_URL=https://platform.ringcentral.com
 To capture patient replies, create a RingCentral Event Subscription (message-store, SMS only) pointing to:
 
 ```
-https://blueprintproject.scrimvivbes.xyz/api/ringcentral/inbound
+https://blueprintproject.scrimvibes.xyz/api/ringcentral/inbound
 ```
 
 From the project root you can automate this via the helper script:
 
 ```
 # Optionally set RINGCENTRAL_WEBHOOK_URL in .env.local
-npm run ringcentral:subscribe -- --webhook https://blueprintproject.scrimvivbes.xyz/api/ringcentral/inbound
+npm run ringcentral:subscribe -- --webhook https://blueprintproject.scrimvibes.xyz/api/ringcentral/inbound
 ```
 
 Use `--list` to inspect existing subscriptions and `--delete <id>` to remove one:
@@ -83,8 +83,8 @@ npm run ringcentral:subscribe -- --delete <subscriptionId>
 
 On the first handshake RingCentral sends a `Validation-Token` header; our route now echoes that header back, so the subscription should activate automatically. Once configured, inbound SMS records are written to Prisma via the API route, and threads in `/messaging` update as replies arrive.
 
-### DNS + TLS for blueprintproject.scrimvivbes.xyz
+### DNS + TLS for blueprintproject.scrimvibes.xyz
 
-1. Add a CNAME (or ALIAS/ANAME if your provider requires it) for `blueprintproject.scrimvivbes.xyz` that points at the host serving this Next.js app (Vercel, Cloudflare Pages, custom Nginx, etc.).
+1. Add a CNAME (or ALIAS/ANAME if your provider requires it) for `blueprintproject.scrimvibes.xyz` that points at the host serving this Next.js app (Vercel, Cloudflare Pages, custom Nginx, etc.).
 2. Ensure the hosting provider issues an HTTPS certificate for the new subdomain; most managed platforms do this automatically once the DNS record resolves.
-3. Redeploy the dashboard so the public URL matches the new hostname and verify that `https://blueprintproject.scrimvivbes.xyz` loads without certificate warnings.
+3. Redeploy the dashboard so the public URL matches the new hostname and verify that `https://blueprintproject.scrimvibes.xyz` loads without certificate warnings.
