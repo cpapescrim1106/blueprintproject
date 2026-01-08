@@ -19,8 +19,11 @@ services:
     environment:
       - DATABASE_URL=postgresql://blueprint:${DB_PASSWORD}@postgres:5432/blueprint?schema=public
       - NODE_ENV=production
+      - WORKER_URL=http://worker:8080
     depends_on:
       postgres:
+        condition: service_healthy
+      worker:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
@@ -43,6 +46,12 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   postgres:
     image: postgres:16

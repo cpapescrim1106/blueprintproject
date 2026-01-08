@@ -1,8 +1,23 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { jsonFetcher } from "@/lib/useJsonFetch";
+
+type TriggerStatus = {
+  is_running: boolean;
+  last_result: {
+    status: string;
+    message: string;
+    details?: Array<{
+      report: string;
+      success: boolean;
+      stdout?: string;
+      stderr?: string;
+    }>;
+  };
+  error?: string;
+};
 
 const formatter = new Intl.DateTimeFormat(undefined, {
   dateStyle: "medium",
@@ -36,8 +51,10 @@ type ReportRow = {
 export default function IngestionsPage() {
   const [reportFilter, setReportFilter] = useState("");
   const [selectedIngestion, setSelectedIngestion] = useState<number | null>(null);
+  const [triggerStatus, setTriggerStatus] = useState<TriggerStatus | null>(null);
+  const [isTriggering, setIsTriggering] = useState(false);
 
-  const { data: ingestions } = useSWR<Ingestion[]>(
+  const { data: ingestions, mutate: mutateIngestions } = useSWR<Ingestion[]>(
     `/api/reports/ingestions?limit=100${reportFilter ? `&reportName=${encodeURIComponent(reportFilter)}` : ""}`,
     jsonFetcher,
     { refreshInterval: 60_000 },
@@ -75,6 +92,48 @@ export default function IngestionsPage() {
     return Object.keys(first);
   }, [rows]);
 
+  // Poll trigger status when running
+  useEffect(() => {
+    if (!triggerStatus?.is_running) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const response = await fetch("/api/reports/trigger");
+        const data: TriggerStatus = await response.json();
+        setTriggerStatus(data);
+
+        if (!data.is_running) {
+          // Ingestion completed, refresh the list
+          mutateIngestions();
+        }
+      } catch {
+        // Ignore polling errors
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [triggerStatus?.is_running, mutateIngestions]);
+
+  const handleTrigger = useCallback(async () => {
+    setIsTriggering(true);
+    try {
+      const response = await fetch("/api/reports/trigger", { method: "POST" });
+      const data: TriggerStatus = await response.json();
+      if (response.ok) {
+        setTriggerStatus({ is_running: true, last_result: { status: "running", message: "Ingestion started" } });
+      } else {
+        setTriggerStatus(data);
+      }
+    } catch (error) {
+      setTriggerStatus({
+        is_running: false,
+        last_result: { status: "error", message: error instanceof Error ? error.message : "Failed to trigger" },
+      });
+    } finally {
+      setIsTriggering(false);
+    }
+  }, []);
+
   return (
     <div className="bg-background text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
@@ -93,9 +152,35 @@ export default function IngestionsPage() {
                 onChange={(event) => setReportFilter(event.target.value)}
               />
             </label>
-            <div className="flex items-center gap-2 rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
-              <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-              Data is automatically refreshed at 6 AM and 6 PM UTC daily
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                onClick={handleTrigger}
+                disabled={isTriggering || triggerStatus?.is_running}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground shadow-sm transition hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                {triggerStatus?.is_running ? (
+                  <>
+                    <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                    Running...
+                  </>
+                ) : (
+                  <>
+                    <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Refresh Now
+                  </>
+                )}
+              </button>
+              {triggerStatus?.last_result && !triggerStatus.is_running && (
+                <span className={`text-xs ${triggerStatus.last_result.status === "error" || triggerStatus.last_result.status === "partial" ? "text-destructive" : triggerStatus.last_result.status === "completed" ? "text-green-600" : "text-muted-foreground"}`}>
+                  {triggerStatus.last_result.message}
+                </span>
+              )}
+              <div className="flex items-center gap-2 rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+                <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
+                Also runs at 6 AM and 6 PM UTC daily
+              </div>
             </div>
           </div>
         </header>
