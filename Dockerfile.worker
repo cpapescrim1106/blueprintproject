@@ -52,6 +52,10 @@ ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
 RUN npm ci --omit=dev
 RUN npx prisma generate
 
+# Install script dependencies in scripts directory
+WORKDIR /app/scripts
+RUN npm init -y && npm install dotenv csv-parse minimist --omit=dev
+
 WORKDIR /app
 
 # Create the ingestion script
