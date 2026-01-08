@@ -179,7 +179,7 @@ export default function IngestionsPage() {
               )}
               <div className="flex items-center gap-2 rounded-md border border-dashed bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
                 <span className="inline-block h-2 w-2 rounded-full bg-green-500" />
-                Also runs at 6 AM and 6 PM UTC daily
+                Also runs at 11am, 1pm, 3pm, 5pm EST daily
               </div>
             </div>
           </div>

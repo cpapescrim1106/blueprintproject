@@ -84,8 +84,8 @@ CRONSCRIPT
 
 RUN chmod +x /app/run_ingestion.sh
 
-# Create crontab: run at 6 AM and 6 PM daily (UTC)
-RUN echo "0 6,18 * * * /app/run_ingestion.sh" > /app/crontab
+# Create crontab: run at 11am, 1pm, 3pm, 5pm EST (16:00, 18:00, 20:00, 22:00 UTC)
+RUN echo "0 16,18,20,22 * * * /app/run_ingestion.sh" > /app/crontab
 
 # Create startup script that runs both cron and trigger server
 RUN cat > /app/start.sh << 'STARTSCRIPT'
