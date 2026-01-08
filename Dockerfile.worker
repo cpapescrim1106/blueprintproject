@@ -6,13 +6,17 @@ FROM eclipse-temurin:8-jre-alpine AS java-base
 
 FROM node:20-alpine AS worker
 
-# Install Python 3, pip, and cron daemon
+# Install Python 3, pip, cron daemon, and fonts for JasperReports
 RUN apk add --no-cache \
     python3 \
     py3-pip \
     bash \
     openssl \
-    supercronic
+    supercronic \
+    fontconfig \
+    ttf-dejavu \
+    ttf-liberation \
+    font-noto
 
 # Copy Java runtime from Eclipse Temurin
 COPY --from=java-base /opt/java/openjdk /opt/java/openjdk
