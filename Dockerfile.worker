@@ -1,0 +1,91 @@
+# Ingestion Worker Container
+# Includes Python 3 + boto3, Java 8, and Node.js for full pipeline support
+# Runs on cron schedule for automatic data ingestion
+
+FROM eclipse-temurin:8-jre-alpine AS java-base
+
+FROM node:20-alpine AS worker
+
+# Install Python 3, pip, and cron daemon
+RUN apk add --no-cache \
+    python3 \
+    py3-pip \
+    bash \
+    openssl \
+    supercronic
+
+# Copy Java runtime from Eclipse Temurin
+COPY --from=java-base /opt/java/openjdk /opt/java/openjdk
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH="${JAVA_HOME}/bin:${PATH}"
+
+WORKDIR /app
+
+# Install Python dependencies
+RUN pip3 install --no-cache-dir --break-system-packages boto3
+
+# Copy blueprint_exporter Python module
+COPY blueprint_exporter/ ./blueprint_exporter/
+
+# Copy ingestion scripts
+COPY scripts/ ./scripts/
+
+# Copy Java dependencies (JARs for JasperReports)
+COPY client_lib/ ./client_lib/
+COPY client_classpath.txt ./
+
+# Copy ReportExporter Java source and compiled class
+COPY ReportExporter.java ./
+COPY ReportExporter.class ./
+
+# Copy dashboard for Prisma client generation
+COPY convex-dashboard/package*.json ./convex-dashboard/
+COPY convex-dashboard/prisma/ ./convex-dashboard/prisma/
+
+# Install Node.js dependencies for ingest script
+WORKDIR /app/convex-dashboard
+ENV DATABASE_URL=postgresql://dummy:dummy@localhost:5432/dummy
+RUN npm ci --omit=dev
+RUN npx prisma generate
+
+WORKDIR /app
+
+# Create the ingestion script
+RUN cat > /app/run_ingestion.sh << 'CRONSCRIPT'
+#!/bin/bash
+set -e
+cd /app
+
+echo "$(date): Starting scheduled ingestion..."
+
+# Run appointments report
+echo "$(date): Ingesting Referral Source - Appointments..."
+python3 scripts/run_report_pipeline.py \
+    --report-name "Referral Source - Appointments" \
+    --window short \
+    || echo "Warning: Appointments ingestion failed"
+
+# Run patient recalls report
+echo "$(date): Ingesting Patient Recalls..."
+python3 scripts/run_report_pipeline.py \
+    --report-name "Patient Recalls" \
+    --window short \
+    || echo "Warning: Patient Recalls ingestion failed"
+
+# Run active patients report
+echo "$(date): Ingesting All Active Patients..."
+python3 scripts/run_report_pipeline.py \
+    --report-name "All Active Patients" \
+    --window short \
+    || echo "Warning: All Active Patients ingestion failed"
+
+echo "$(date): Scheduled ingestion complete"
+CRONSCRIPT
+
+RUN chmod +x /app/run_ingestion.sh
+
+# Create crontab: run at 6 AM and 6 PM daily (UTC)
+RUN echo "0 6,18 * * * /app/run_ingestion.sh" > /app/crontab
+
+# Run supercronic for cron scheduling
+CMD ["supercronic", "/app/crontab"]

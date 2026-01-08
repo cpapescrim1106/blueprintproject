@@ -1,50 +1,14 @@
 import { NextResponse } from "next/server";
-import {
-  runPipeline,
-  type PipelineWindow,
-  type ReportKey,
-} from "@/lib/pipeline";
 
-type RequestBody = {
-  reportKey?: ReportKey;
-  window?: PipelineWindow;
-};
-
-export async function POST(request: Request) {
-  let payload: RequestBody;
-  try {
-    payload = await request.json();
-  } catch {
-    return NextResponse.json(
-      { success: false, error: "Invalid JSON payload." },
-      { status: 400 },
-    );
-  }
-
-  const { reportKey, window } = payload;
-  if (!reportKey || !window) {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Both 'reportKey' and 'window' are required.",
-      },
-      { status: 400 },
-    );
-  }
-
-  if (window !== "short" && window !== "full") {
-    return NextResponse.json(
-      {
-        success: false,
-        error: "Window must be 'short' or 'full'.",
-      },
-      { status: 400 },
-    );
-  }
-
-  const result = await runPipeline(reportKey, window);
-  if (!result.success) {
-    return NextResponse.json(result, { status: 500 });
-  }
-  return NextResponse.json(result);
+// In production, ingestion is handled by the worker container on a schedule.
+// This endpoint is disabled to prevent 500 errors from missing Python dependencies.
+export async function POST() {
+  return NextResponse.json(
+    {
+      success: false,
+      error: "Manual ingestion is disabled in production. Data is automatically ingested by the worker container at 6 AM and 6 PM UTC daily.",
+      hint: "Check the ingestions list to see the latest data refresh.",
+    },
+    { status: 501 }
+  );
 }

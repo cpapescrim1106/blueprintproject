@@ -1,0 +1,63 @@
+# Production Docker Compose for Blueprint Dashboard
+# Includes: web (Next.js), worker (ingestion cron), and postgres
+#
+# Required environment variables:
+#   DB_PASSWORD - PostgreSQL password
+#   AWS_ACCESS_KEY_ID - AWS access key for SQS/S3
+#   AWS_SECRET_ACCESS_KEY - AWS secret key
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+
+services:
+  web:
+    build:
+      context: ./convex-dashboard
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://blueprint:${DB_PASSWORD}@postgres:5432/blueprint?schema=public
+      - NODE_ENV=production
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/reports/ingestions || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+    environment:
+      - DATABASE_URL=postgresql://blueprint:${DB_PASSWORD}@postgres:5432/blueprint?schema=public
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
+      - AWS_DEFAULT_REGION=us-east-2
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: blueprint
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: blueprint
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U blueprint"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:

@@ -24,7 +24,9 @@ from pathlib import Path
 
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-JAVA_HOME = PROJECT_ROOT / "jdk8u462-b08" / "Contents" / "Home"
+# Support both Docker (JAVA_HOME env var) and local macOS (jdk8u462-b08)
+_default_java_home = str(PROJECT_ROOT / "jdk8u462-b08" / "Contents" / "Home")
+JAVA_HOME = Path(os.environ.get("JAVA_HOME", _default_java_home))
 JAVA_BIN = JAVA_HOME / "bin" / "java"
 JAVAC_BIN = JAVA_HOME / "bin" / "javac"
 REPORT_EXPORTER_JAVA = PROJECT_ROOT / "ReportExporter.java"
