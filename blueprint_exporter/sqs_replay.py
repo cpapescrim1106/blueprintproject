@@ -1,15 +1,19 @@
 from __future__ import annotations
 
 import json
+import os
 import time
 import uuid
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Callable, Dict, Iterator, List, Optional, TYPE_CHECKING
 
 try:
     import boto3  # type: ignore
+    from botocore.exceptions import ClientError  # type: ignore
 except ModuleNotFoundError:  # pragma: no cover - offline mode without boto3
     boto3 = None  # type: ignore
+    ClientError = Exception  # type: ignore
 
 if TYPE_CHECKING:
     from botocore.client import BaseClient  # type: ignore
@@ -18,6 +22,81 @@ else:
 
 from .config import ReplayConfig
 from .payloads import ReportRequest
+
+
+# Circuit breaker for credential errors
+# Prevents repeated API calls when credentials are invalid
+CIRCUIT_BREAKER_FILE = Path("/tmp/aws_circuit_breaker.json")
+CREDENTIAL_ERROR_CODES = {
+    "InvalidClientTokenId",
+    "SignatureDoesNotMatch",
+    "AccessDenied",
+    "ExpiredToken",
+    "ExpiredTokenException",
+    "UnrecognizedClientException",
+}
+
+
+class CredentialCircuitOpenError(Exception):
+    """Raised when the circuit breaker is open due to credential errors."""
+    def __init__(self, message: str, last_error: str, opened_at: str):
+        super().__init__(message)
+        self.last_error = last_error
+        self.opened_at = opened_at
+
+
+def _load_circuit_state() -> Dict[str, Any]:
+    """Load circuit breaker state from file."""
+    if CIRCUIT_BREAKER_FILE.exists():
+        try:
+            return json.loads(CIRCUIT_BREAKER_FILE.read_text())
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {"open": False, "last_error": None, "opened_at": None}
+
+
+def _save_circuit_state(state: Dict[str, Any]) -> None:
+    """Save circuit breaker state to file."""
+    try:
+        CIRCUIT_BREAKER_FILE.write_text(json.dumps(state))
+    except OSError:
+        pass  # Best effort
+
+
+def check_circuit_breaker() -> None:
+    """Check if circuit breaker is open and raise if so."""
+    state = _load_circuit_state()
+    if state.get("open"):
+        raise CredentialCircuitOpenError(
+            f"AWS credential circuit breaker is OPEN. Last error: {state.get('last_error')}. "
+            f"Fix credentials and delete {CIRCUIT_BREAKER_FILE} to reset.",
+            last_error=state.get("last_error", "Unknown"),
+            opened_at=state.get("opened_at", "Unknown"),
+        )
+
+
+def open_circuit_breaker(error_code: str, error_message: str) -> None:
+    """Open the circuit breaker due to a credential error."""
+    state = {
+        "open": True,
+        "last_error": f"{error_code}: {error_message}",
+        "opened_at": time.strftime("%Y-%m-%d %H:%M:%S UTC", time.gmtime()),
+        "error_code": error_code,
+    }
+    _save_circuit_state(state)
+    print(f"\n{'='*60}")
+    print("AWS CREDENTIAL ERROR - CIRCUIT BREAKER OPENED")
+    print(f"Error: {error_code}: {error_message}")
+    print(f"No further AWS API calls will be attempted.")
+    print(f"To reset: fix credentials and delete {CIRCUIT_BREAKER_FILE}")
+    print(f"{'='*60}\n")
+
+
+def reset_circuit_breaker() -> None:
+    """Reset the circuit breaker (call after fixing credentials)."""
+    if CIRCUIT_BREAKER_FILE.exists():
+        CIRCUIT_BREAKER_FILE.unlink()
+    print("AWS credential circuit breaker has been reset.")
 
 
 def create_sqs_client(region_name: str) -> BaseClient:
@@ -82,6 +161,9 @@ class SQSReplayClient:
         message_deduplication_id: Optional[str] = None,
         dry_run: bool = False,
     ) -> Dict[str, object]:
+        # Check circuit breaker before making any AWS calls
+        check_circuit_breaker()
+
         group_id = message_group_id or self._config.message_group_id
         dedup_id = message_deduplication_id or str(uuid.uuid4())
         if dry_run:
@@ -93,14 +175,24 @@ class SQSReplayClient:
                 "MessageAttributes": request.sqs_attributes(),
             }
 
-        response = self._sqs.send_message(
-            QueueUrl=self._config.request_queue_url,
-            MessageBody=request.message_body(),
-            MessageGroupId=group_id,
-            MessageDeduplicationId=dedup_id,
-            MessageAttributes=request.sqs_attributes(),
-        )
-        return response  # type: ignore[return-value]
+        try:
+            response = self._sqs.send_message(
+                QueueUrl=self._config.request_queue_url,
+                MessageBody=request.message_body(),
+                MessageGroupId=group_id,
+                MessageDeduplicationId=dedup_id,
+                MessageAttributes=request.sqs_attributes(),
+            )
+            return response  # type: ignore[return-value]
+        except ClientError as e:
+            error_code = e.response.get("Error", {}).get("Code", "Unknown")
+            error_message = e.response.get("Error", {}).get("Message", str(e))
+
+            # Check if this is a credential error
+            if error_code in CREDENTIAL_ERROR_CODES:
+                open_circuit_breaker(error_code, error_message)
+
+            raise
 
     def poll_notifications(
         self,

@@ -4,6 +4,12 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { jsonFetcher } from "@/lib/useJsonFetch";
 
+type CircuitBreakerStatus = {
+  is_open: boolean;
+  error?: string;
+  opened_at?: string;
+};
+
 type TriggerStatus = {
   is_running: boolean;
   last_result: {
@@ -17,6 +23,7 @@ type TriggerStatus = {
     }>;
   };
   error?: string;
+  circuit_breaker?: CircuitBreakerStatus;
 };
 
 const formatter = new Intl.DateTimeFormat(undefined, {
@@ -161,15 +168,26 @@ export default function IngestionsPage() {
     return () => clearInterval(interval);
   }, [triggerStatus?.is_running, mutateIngestions]);
 
+  // Fetch initial trigger status (including circuit breaker)
+  useEffect(() => {
+    fetch("/api/reports/trigger")
+      .then(res => res.json())
+      .then((data: TriggerStatus) => setTriggerStatus(data))
+      .catch(() => {}); // Ignore errors on initial fetch
+  }, []);
+
   const handleTrigger = useCallback(async () => {
     setIsTriggering(true);
     try {
       const response = await fetch("/api/reports/trigger", { method: "POST" });
-      const data: TriggerStatus = await response.json();
+      await response.json(); // Consume response
       if (response.ok) {
         setTriggerStatus({ is_running: true, last_result: { status: "running", message: "Ingestion started" } });
       } else {
-        setTriggerStatus(data);
+        // Fetch full status to get circuit breaker info
+        const statusRes = await fetch("/api/reports/trigger");
+        const statusData: TriggerStatus = await statusRes.json();
+        setTriggerStatus(statusData);
       }
     } catch (error) {
       setTriggerStatus({
@@ -181,11 +199,52 @@ export default function IngestionsPage() {
     }
   }, []);
 
+  const handleResetCircuitBreaker = useCallback(async () => {
+    try {
+      const response = await fetch("/api/reports/trigger", { method: "DELETE" });
+      const data = await response.json();
+      if (data.success) {
+        // Refresh status
+        const statusRes = await fetch("/api/reports/trigger");
+        const statusData: TriggerStatus = await statusRes.json();
+        setTriggerStatus(statusData);
+      }
+    } catch (error) {
+      console.error("Failed to reset circuit breaker:", error);
+    }
+  }, []);
+
   return (
     <div className="bg-background text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+        {/* Circuit Breaker Error Banner */}
+        {triggerStatus?.circuit_breaker?.is_open && (
+          <div className="flex items-center gap-3 rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3 text-sm">
+            <svg className="h-5 w-5 flex-shrink-0 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <span className="font-medium text-red-600 dark:text-red-400">AWS Credential Error - Ingestions Halted</span>
+              <p className="text-red-700 dark:text-red-300 text-xs mt-1">
+                {triggerStatus.circuit_breaker.error}
+              </p>
+              {triggerStatus.circuit_breaker.opened_at && (
+                <p className="text-red-600/70 dark:text-red-400/70 text-xs">
+                  Since: {triggerStatus.circuit_breaker.opened_at}
+                </p>
+              )}
+            </div>
+            <button
+              onClick={handleResetCircuitBreaker}
+              className="rounded-md bg-red-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-600"
+            >
+              Reset & Retry
+            </button>
+          </div>
+        )}
+
         {/* Staleness Warning Banner */}
-        {staleness.isStale && (
+        {staleness.isStale && !triggerStatus?.circuit_breaker?.is_open && (
           <div className="flex items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm">
             <svg className="h-5 w-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />

@@ -44,3 +44,25 @@ export async function GET() {
     );
   }
 }
+
+// Reset the circuit breaker
+export async function DELETE() {
+  try {
+    const response = await fetch(`${WORKER_URL}/reset-circuit`, {
+      method: "POST",
+    });
+
+    const data = await response.json();
+
+    return NextResponse.json(data, { status: response.status });
+  } catch (error) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: "Failed to connect to worker container",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 503 }
+    );
+  }
+}

@@ -13,10 +13,27 @@ from pathlib import Path
 PORT = 8080
 SCRIPT_DIR = Path(__file__).resolve().parent
 PIPELINE_SCRIPT = SCRIPT_DIR / "run_report_pipeline.py"
+CIRCUIT_BREAKER_FILE = Path("/tmp/aws_circuit_breaker.json")
 
 # Track if ingestion is currently running
 is_running = False
 last_result = {"status": "idle", "message": "No ingestion has been run yet"}
+
+
+def get_circuit_breaker_status():
+    """Check if the AWS credential circuit breaker is open."""
+    if CIRCUIT_BREAKER_FILE.exists():
+        try:
+            state = json.loads(CIRCUIT_BREAKER_FILE.read_text())
+            if state.get("open"):
+                return {
+                    "is_open": True,
+                    "error": state.get("last_error", "Unknown credential error"),
+                    "opened_at": state.get("opened_at", "Unknown"),
+                }
+        except (json.JSONDecodeError, OSError):
+            pass
+    return {"is_open": False}
 
 
 class TriggerHandler(http.server.BaseHTTPRequestHandler):
@@ -35,9 +52,11 @@ class TriggerHandler(http.server.BaseHTTPRequestHandler):
             self.send_header("Content-Type", "application/json")
             self.send_header("Access-Control-Allow-Origin", "*")
             self.end_headers()
+            circuit_status = get_circuit_breaker_status()
             response = {
                 "is_running": is_running,
-                "last_result": last_result
+                "last_result": last_result,
+                "circuit_breaker": circuit_status
             }
             self.wfile.write(json.dumps(response).encode())
             return
@@ -51,6 +70,21 @@ class TriggerHandler(http.server.BaseHTTPRequestHandler):
         if self.path == "/trigger":
             # Handle CORS preflight
             self.send_header("Access-Control-Allow-Origin", "*")
+
+            # Check circuit breaker first
+            circuit_status = get_circuit_breaker_status()
+            if circuit_status["is_open"]:
+                self.send_response(503)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": False,
+                    "error": "AWS credential circuit breaker is OPEN",
+                    "details": circuit_status["error"],
+                    "opened_at": circuit_status["opened_at"],
+                    "hint": f"Fix AWS credentials and delete {CIRCUIT_BREAKER_FILE} to reset"
+                }).encode())
+                return
 
             if is_running:
                 self.send_response(409)
@@ -113,6 +147,38 @@ class TriggerHandler(http.server.BaseHTTPRequestHandler):
                 "success": True,
                 "message": "Ingestion started in background"
             }).encode())
+            return
+
+        if self.path == "/reset-circuit":
+            # Reset the circuit breaker
+            self.send_header("Access-Control-Allow-Origin", "*")
+
+            if CIRCUIT_BREAKER_FILE.exists():
+                try:
+                    CIRCUIT_BREAKER_FILE.unlink()
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "success": True,
+                        "message": "Circuit breaker has been reset"
+                    }).encode())
+                except OSError as e:
+                    self.send_response(500)
+                    self.send_header("Content-Type", "application/json")
+                    self.end_headers()
+                    self.wfile.write(json.dumps({
+                        "success": False,
+                        "error": f"Failed to delete circuit breaker file: {e}"
+                    }).encode())
+            else:
+                self.send_response(200)
+                self.send_header("Content-Type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    "success": True,
+                    "message": "Circuit breaker was not open"
+                }).encode())
             return
 
         self.send_response(404)

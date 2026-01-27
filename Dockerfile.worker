@@ -58,13 +58,23 @@ RUN npm init -y && npm install dotenv csv-parse minimist --omit=dev
 
 WORKDIR /app
 
-# Create the ingestion script
+# Create the ingestion script with circuit breaker check
 RUN cat > /app/run_ingestion.sh << 'CRONSCRIPT'
 #!/bin/bash
-set -e
 cd /app
 
 echo "$(date): Starting scheduled ingestion..."
+
+# Check circuit breaker before doing anything
+CIRCUIT_FILE="/tmp/aws_circuit_breaker.json"
+if [ -f "$CIRCUIT_FILE" ]; then
+    IS_OPEN=$(python3 -c "import json; print(json.load(open('$CIRCUIT_FILE')).get('open', False))" 2>/dev/null || echo "False")
+    if [ "$IS_OPEN" = "True" ]; then
+        echo "$(date): AWS credential circuit breaker is OPEN - skipping scheduled ingestion"
+        echo "$(date): Fix credentials and delete $CIRCUIT_FILE to reset"
+        exit 0
+    fi
+fi
 
 # Run appointments report
 echo "$(date): Ingesting Referral Source - Appointments..."
