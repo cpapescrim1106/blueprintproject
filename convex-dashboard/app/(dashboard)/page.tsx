@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,6 +20,14 @@ import {
 } from "@/lib/reportConfig";
 import { jsonFetcher } from "@/lib/useJsonFetch";
 import { siteConfig } from "@/lib/siteConfig";
+
+// Check if data is stale (older than 4 hours)
+const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000;
+
+type Ingestion = {
+  id: number;
+  capturedAt: bigint | number;
+};
 
 export default function DashboardPage() {
   const [pendingRun, setPendingRun] = useState<
@@ -38,6 +46,41 @@ export default function DashboardPage() {
     jsonFetcher,
     { refreshInterval: 60_000 },
   );
+
+  // Check for stale ingestion data
+  const { data: ingestions } = useSWR<Ingestion[]>(
+    "/api/reports/ingestions?limit=1",
+    jsonFetcher,
+    { refreshInterval: 60_000 },
+  );
+
+  const staleness = useMemo(() => {
+    if (!ingestions || ingestions.length === 0) {
+      return { isStale: false, message: "" }; // Don't show warning while loading
+    }
+    const latestTimestamp = Number(ingestions[0].capturedAt);
+    const now = Date.now();
+    const ageMs = now - latestTimestamp;
+    const hoursAgo = Math.floor(ageMs / (60 * 60 * 1000));
+    const isStale = ageMs > STALE_THRESHOLD_MS;
+
+    if (!isStale) {
+      return { isStale: false, message: "" };
+    }
+
+    if (hoursAgo < 24) {
+      return {
+        isStale: true,
+        message: `Data is ${hoursAgo} hour${hoursAgo !== 1 ? "s" : ""} old. Scheduled ingestions may be failing.`,
+      };
+    }
+
+    const daysAgo = Math.floor(hoursAgo / 24);
+    return {
+      isStale: true,
+      message: `Data is ${daysAgo} day${daysAgo !== 1 ? "s" : ""} old. Scheduled ingestions may be failing.`,
+    };
+  }, [ingestions]);
   const isPendingShort =
     pendingRun?.reportKey === selectedReportKey &&
     pendingRun?.window === "short";
@@ -106,6 +149,27 @@ export default function DashboardPage() {
   return (
     <div className="bg-background text-foreground">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-8 p-6">
+        {/* Staleness Warning Banner */}
+        {staleness.isStale && (
+          <div className="flex items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm">
+            <AlertTriangle className="h-5 w-5 flex-shrink-0 text-amber-500" />
+            <div className="flex-1">
+              <span className="font-medium text-amber-600 dark:text-amber-400">
+                Ingestion data is stale.
+              </span>{" "}
+              <span className="text-amber-700 dark:text-amber-300">
+                {staleness.message}
+              </span>
+            </div>
+            <Link
+              href="/ingestions"
+              className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600"
+            >
+              View Details
+            </Link>
+          </div>
+        )}
+
         <header className="flex flex-col gap-4 border-b pb-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="flex flex-col gap-2">

@@ -32,6 +32,43 @@ function formatTimestamp(ms: number) {
   }
 }
 
+// Check if data is stale (older than 4 hours)
+const STALE_THRESHOLD_MS = 4 * 60 * 60 * 1000; // 4 hours
+
+function getDataStaleness(latestTimestamp: number | null): {
+  isStale: boolean;
+  hoursAgo: number;
+  message: string;
+} {
+  if (!latestTimestamp) {
+    return { isStale: true, hoursAgo: 0, message: "No ingestion data available" };
+  }
+
+  const now = Date.now();
+  const ageMs = now - latestTimestamp;
+  const hoursAgo = Math.floor(ageMs / (60 * 60 * 1000));
+  const isStale = ageMs > STALE_THRESHOLD_MS;
+
+  if (!isStale) {
+    return { isStale: false, hoursAgo, message: "" };
+  }
+
+  if (hoursAgo < 24) {
+    return {
+      isStale: true,
+      hoursAgo,
+      message: `Data is ${hoursAgo} hour${hoursAgo !== 1 ? 's' : ''} old. Scheduled ingestions may be failing.`
+    };
+  }
+
+  const daysAgo = Math.floor(hoursAgo / 24);
+  return {
+    isStale: true,
+    hoursAgo,
+    message: `Data is ${daysAgo} day${daysAgo !== 1 ? 's' : ''} old. Scheduled ingestions may be failing.`
+  };
+}
+
 type Ingestion = {
   id: number;
   reportName: string;
@@ -72,6 +109,16 @@ export default function IngestionsPage() {
       : null,
     jsonFetcher,
   );
+
+  // Check data staleness
+  const staleness = useMemo(() => {
+    if (!ingestions || ingestions.length === 0) {
+      return getDataStaleness(null);
+    }
+    // Get the most recent ingestion timestamp
+    const latestTimestamp = Math.max(...ingestions.map(i => Number(i.capturedAt)));
+    return getDataStaleness(latestTimestamp);
+  }, [ingestions]);
 
   const selected = useMemo<Ingestion | null>(() => {
     if (!ingestions || !selectedIngestion) {
@@ -137,6 +184,26 @@ export default function IngestionsPage() {
   return (
     <div className="bg-background text-foreground">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-6 p-6">
+        {/* Staleness Warning Banner */}
+        {staleness.isStale && (
+          <div className="flex items-center gap-3 rounded-lg border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-sm">
+            <svg className="h-5 w-5 flex-shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div className="flex-1">
+              <span className="font-medium text-amber-600 dark:text-amber-400">Ingestion data is stale.</span>{" "}
+              <span className="text-amber-700 dark:text-amber-300">{staleness.message}</span>
+            </div>
+            <button
+              onClick={handleTrigger}
+              disabled={isTriggering || triggerStatus?.is_running}
+              className="rounded-md bg-amber-500 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-600 disabled:opacity-50"
+            >
+              {triggerStatus?.is_running ? "Running..." : "Retry Now"}
+            </button>
+          </div>
+        )}
+
         <header className="flex flex-col gap-4 border-b pb-4">
           <h1 className="text-3xl font-semibold tracking-tight">Ingestion explorer</h1>
           <p className="text-sm text-muted-foreground">
